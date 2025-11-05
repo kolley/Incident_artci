@@ -6,7 +6,6 @@
 
 generator client {
   provider = "prisma-client-js"
-  
 }
 
 datasource db {
@@ -14,29 +13,47 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model User{
-id Int @id @default(autoincrement())
-	email String @unique
-	password String 
+// Table des utilisateurs
+model User {
+  id       Int      @id @default(autoincrement())
+  email    String   @unique
+  password String
+  profil   Profil?  @relation(fields: [profilId], references: [id])
+  profilId Int?     // clé étrangère vers Profil
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
-	
+
+// Table des profils
+model Profil {
+  id          Int      @id @default(autoincrement())
+  nom         String
+  description String?
+  users       User[]   // relation inverse, un profil peut être attribué à plusieurs utilisateurs
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// Table des formulaires
 model Formulaire {
-  id              Int       @id @default(autoincrement())
-  operateur       String
-  reference       String
-  intitule        String
-  descriptif      String
-  zone            String
-  localite        String
-  communes        String
-  typeIncident    String
-  noeudsTouches   Int
-  impacts         String
-  resolution      String
+  id               Int       @id @default(autoincrement())
+  operateur        String  // obligatoire
+  reference        String?   // optionnel
+  intitule         String  // obligatoire
+  descriptif       String  // obligatoire
+  zone             String  // obligatoire
+  localite         String  // obligatoire
+  communes         String  // obligatoire
+  abonnesimpactes  Int  // obligatoire
+  typeIncident     String  // obligatoire
+  noeudsTouches    Int  // obligatoire
+  impacts          String  // obligatoire
+  resolution       String  // obligatoire
   dateNotification DateTime
-  dateDebut       DateTime
-  dateFin         DateTime
-  observation     String?   // Champ optionnel
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  dateDebut        DateTime? // optionnel
+  dateFin          DateTime? // optionnel
+  observation      String?   // optionnel
+  etat             String    // obligatoire
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
 }

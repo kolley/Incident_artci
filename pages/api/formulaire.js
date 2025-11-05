@@ -1,14 +1,13 @@
-// Import Prisma Client configuré
+// Import du Prisma Client configuré
 import prisma from "../../service/config/prisma";
 
-// Export de la fonction handler qui va gérer les requêtes HTTP
 export default async function handler(req, res) {
-  // On ne traite que les requêtes POST (soumission du formulaire)
+  // ✅ On accepte uniquement la méthode POST
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Méthode non autorisée" });
   }
 
-  // Récupération des données envoyées par le formulaire
+  // ✅ Récupération des données du formulaire
   const {
     operateur,
     reference,
@@ -17,62 +16,68 @@ export default async function handler(req, res) {
     zone,
     localite,
     communes,
+    abonnesimpactes,
     typeIncident,
     noeudsTouches,
     impacts,
     resolution,
-    dateNotification,
     dateDebut,
     dateFin,
     observation,
+    etat,
   } = req.body;
 
-  // Validation basique : vérifier que les champs obligatoires ne sont pas vides
+  console.log("📩 Données reçues par l’API :", req.body);
+
+  // ✅ Validation des champs obligatoires
   if (
     !operateur ||
-    !reference ||
     !intitule ||
     !descriptif ||
     !zone ||
     !localite ||
     !communes ||
+    !abonnesimpactes ||
     !typeIncident ||
     !noeudsTouches ||
     !impacts ||
     !resolution ||
-    !dateNotification ||
-    !dateDebut ||
-    !dateFin
+    !etat // etat obligatoire
   ) {
-    return res.status(400).json({ error: "Tous les champs obligatoires doivent être remplis" });
+    return res
+      .status(400)
+      .json({ error: "Certains champs obligatoires ne sont pas remplis." });
   }
 
   try {
-    // Enregistrement dans la base de données via Prisma
+    // ✅ Création de l’enregistrement dans la base
     const incident = await prisma.formulaire.create({
       data: {
         operateur,
-        reference,
+        reference: reference || null, // optionnel
         intitule,
         descriptif,
         zone,
         localite,
         communes,
+        abonnesimpactes: parseInt(abonnesimpactes),
         typeIncident,
-        noeudsTouches: parseInt(noeudsTouches), // conversion si besoin
+        noeudsTouches: parseInt(noeudsTouches),
         impacts,
         resolution,
-        dateNotification: new Date(dateNotification),
-        dateDebut: new Date(dateDebut),
-        dateFin: new Date(dateFin),
-        observation,
+        dateNotification: new Date(), // date automatique
+        dateDebut: dateDebut ? new Date(dateDebut) : null, // optionnel
+        dateFin: dateFin ? new Date(dateFin) : null,       // optionnel
+        observation: observation || null,                  // optionnel
+        etat, // obligatoire
       },
     });
 
-    // Réponse positive en JSON
-    return res.status(201).json({ message: "Incident enregistré avec succès ✅", incident });
+    // ✅ Réponse en cas de succès
+    return res
+      .status(201)
+      .json({ message: "Incident enregistré avec succès ✅", incident });
   } catch (error) {
-    // Gestion des erreurs
     console.error("Erreur lors de l'enregistrement de l'incident :", error);
     return res.status(500).json({ error: "Erreur interne du serveur" });
   }

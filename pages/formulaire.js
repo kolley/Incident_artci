@@ -11,6 +11,7 @@ export default function IncidentForm() {
     zone: "",
     localite: "",
     communes: "",
+    abonnesimpactes: "",
     typeIncident: "",
     noeudsTouches: "",
     impacts: "",
@@ -19,6 +20,7 @@ export default function IncidentForm() {
     dateDebut: "",
     dateFin: "",
     observation: "",
+    etat: "",
   });
 
   const handleChange = (e) => {
@@ -41,6 +43,7 @@ export default function IncidentForm() {
         zone: "",
         localite: "",
         communes: "",
+        abonnesimpactes: "",
         typeIncident: "",
         noeudsTouches: "",
         impacts: "",
@@ -49,6 +52,7 @@ export default function IncidentForm() {
         dateDebut: "",
         dateFin: "",
         observation: "",
+        etat: "",
       });
     } catch (err) {
       console.error(err);
@@ -73,7 +77,7 @@ export default function IncidentForm() {
         alt="Image de fond ARTCI"
         className="absolute inset-0 w-full h-full object-cover opacity-10 mix-blend-multiply z-0"
       />
-      
+
       {/* Dégradé décoratif */}
       <div aria-hidden="true" className="absolute inset-x-0 -top-40 -z-10 transform-gpu overflow-hidden blur-3xl sm:-top-80">
         <div
@@ -95,9 +99,9 @@ export default function IncidentForm() {
             </Link>
           </div>
           <div className="hidden lg:flex lg:gap-x-12">
-            <Link href="/" className="text-lg font-semibold text-white">Accueil</Link>
-            <Link href="#" className="text-lg font-semibold text-white">A propos</Link>
-            <Link href="#" className="text-lg font-semibold text-white">Arreté d'incident</Link>
+            <Link href="#" className="text-lg font-semibold text-white">Accueil</Link>
+            <Link href="https://www.artci.ci/" className="text-lg font-semibold text-white">A propos</Link>
+            <Link href="/images/DECISI~1_INCIDENT.PDF" className="text-lg font-semibold text-white">Arreté d'incident</Link>
           </div>
           <div className="hidden lg:flex lg:flex-1 lg:justify-end">
             <Link href="/login_register" className="text-lg font-semibold text-white">
@@ -137,7 +141,7 @@ export default function IncidentForm() {
                   <option value="">Sélectionner un opérateur</option>
                   <option value="MOOV">MOOV CI</option>
                   <option value="MTN">MTN CI</option>
-                  <option value="Orange_CI">Orange CI</option>
+                  <option value="Orange_CI">ORANGE CI</option>
                   <option value="VIPNET">VIPNET</option>
                   <option value="AWALE">AWALE</option>
                   <option value="GVA">GVA</option>
@@ -146,7 +150,7 @@ export default function IncidentForm() {
 
               <div className="space-y-2">
                 <label className="block text-sm font-semibold text-gray-700">
-                  Référence Incident <span className="text-red-500">*</span>
+                  Référence Incident <span className="text-red-500">(optionnel)</span>
                 </label>
                 <input
                   type="text"
@@ -155,7 +159,7 @@ export default function IncidentForm() {
                   onChange={handleChange}
                   placeholder="Ex: INC-2025-001"
                   className={getInputClass(formData.reference)}
-                  required
+
                 />
               </div>
 
@@ -192,7 +196,7 @@ export default function IncidentForm() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <label className="block text-sm font-semibold text-gray-700">
-                    Zone <span className="text-red-500">*</span>
+                    Zone impactée <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="text"
@@ -235,6 +239,22 @@ export default function IncidentForm() {
                 />
               </div>
 
+              <div className="space-y-2">
+                <label className="block text-sm font-semibold text-gray-700">
+                  Nombre d'abonnés impactés <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="number"
+                  name="abonnesimpactes"
+                  value={formData.abonnesimpactes}
+                  onChange={handleChange}
+                  placeholder="Ex: 15000"
+                  className={getInputClass(formData.abonnesimpactes)}
+                  min="0"
+                  required
+                />
+              </div>
+
               {/* --- Deuxième partie --- */}
               <div className="border-t-2 border-orange-200 pt-4 mt-6">
                 <h2 className="text-xl font-bold text-orange-600 mb-4">Détails de l'incident</h2>
@@ -252,9 +272,9 @@ export default function IncidentForm() {
                   required
                 >
                   <option value="">Sélectionner un type</option>
-                  <option value="Panne">Panne</option>
-                  <option value="Coupure">Coupure</option>
-                  <option value="Cyberattaque">Cyberattaque</option>
+                  <option value="Panne">CRITIQUE</option>
+                  <option value="Coupure">MAJEUR</option>
+                  <option value="Cyberattaque">MINEUR</option>
                 </select>
               </div>
 
@@ -269,6 +289,7 @@ export default function IncidentForm() {
                   onChange={handleChange}
                   placeholder="0"
                   className={getInputClass(formData.noeudsTouches)}
+                  min="0"
                   required
                 />
               </div>
@@ -301,25 +322,28 @@ export default function IncidentForm() {
                   rows="3"
                   required
                 ></textarea>
+                
+              </div><div className="space-y-2">
+                <label className="block text-sm font-semibold text-gray-700">
+                  État de l'incident <span className="text-red-500">*</span>
+                </label>
+                <select
+                  name="etat"
+                  value={formData.etat}
+                  onChange={handleChange}
+                  className={getInputClass(formData.etat)}
+                  required
+                >
+                  <option value="">Sélectionner l'état</option>
+                  <option value="Clos">Clos</option>
+                  <option value="Non clos">Non clos</option>
+                </select>
               </div>
-                /**la div date de notification doit quitter */
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <label className="block text-sm font-semibold text-gray-700">
-                    Date de notification <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="date"
-                    name="dateNotification"
-                    value={formData.dateNotification}
-                    onChange={handleChange}
-                    className={getInputClass(formData.dateNotification)}
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="block text-sm font-semibold text-gray-700">
-                    Début <span className="text-red-500">*</span>
+                    Début <span className="text-red-500">{formData.etat === "Clos" && "*"}</span>
                   </label>
                   <input
                     type="datetime-local"
@@ -327,12 +351,16 @@ export default function IncidentForm() {
                     value={formData.dateDebut}
                     onChange={handleChange}
                     className={getInputClass(formData.dateDebut)}
-                    required
+                    required={formData.etat === "Clos"}   // ✅ obligatoire seulement si Clos
                   />
                 </div>
+
                 <div className="space-y-2">
                   <label className="block text-sm font-semibold text-gray-700">
-                    Fin <span className="text-red-500">*</span>
+                    Fin{" "}
+                    <span className={formData.etat === "Clos" ? "text-red-500" : "text-gray-400"}>
+                      {formData.etat === "Clos" && "*" }
+                    </span>
                   </label>
                   <input
                     type="datetime-local"
@@ -340,7 +368,7 @@ export default function IncidentForm() {
                     value={formData.dateFin}
                     onChange={handleChange}
                     className={getInputClass(formData.dateFin)}
-                    required
+                    required={formData.etat === "Clos"}   // ✅ obligatoire seulement si Clos
                   />
                 </div>
               </div>
@@ -376,6 +404,7 @@ export default function IncidentForm() {
                     zone: "",
                     localite: "",
                     communes: "",
+                    abonnesImpactes: "",
                     typeIncident: "",
                     noeudsTouches: "",
                     impacts: "",
@@ -384,6 +413,7 @@ export default function IncidentForm() {
                     dateDebut: "",
                     dateFin: "",
                     observation: "",
+                    etat: "",
                   })
                 }
               >

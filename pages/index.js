@@ -6,28 +6,26 @@ export default function Home() {
         <>
             <div className="bg-orange-500/80">
 
-                <header className="absolute inset-x-0 top-0 z-50">
-                    <nav aria-label="Global" className="bg-white-800 flex items-center justify-between p-6 lg:px-8">
-                        <div className="bg-white-800 flex lg:flex-1">
-                            <a href="#" className="-m-1.5 p-1.5">
-                                <span className="sr-only">Accueil</span>
-                                <img src="/images/ARTCI-2_img.png" alt="Logo ARTCI" className="w-24 h-30 mb-8 object-contain" />
-                            </a>
-                        </div>
-                        <div className="hidden lg:flex lg:gap-x-12">
-                            <a href="#" className="text-lg font-semibold text-white">Accueil</a>
-                            <a href="#" className="text-lg font-semibold text-white">A propos</a>
-                            <a href="#" className="text-lg font-semibold text-white">Arreté d'incident</a>
-                        </div>
-                        <div className="hidden lg:flex lg:flex-1 lg:justify-end">
-                            <Link href="/login_register" className="text-lg font-semibold text-white">
-                                Se Connecter <span aria-hidden="true">&rarr;</span>
-                            </Link>
-                        </div>
-                    </nav>
-
-                </header>
-
+                 <header className="absolute inset-x-0 top-0 z-50">
+        <nav aria-label="Global" className="bg-white-800 flex items-center justify-between p-6 lg:px-8">
+          <div className="bg-white-800 flex lg:flex-1">
+            <Link href="/" className="-m-1.5 p-1.5">
+              <span className="sr-only">Accueil</span>
+              <img src="/images/ARTCI-2_img.png" alt="Logo ARTCI" className="w-24 h-30 object-contain" />
+            </Link>
+          </div>
+          <div className="hidden lg:flex lg:gap-x-12">
+            <Link href="#" className="text-lg font-semibold text-white">Accueil</Link>
+            <Link href="https://www.artci.ci/" className="text-lg font-semibold text-white">A propos</Link>
+            <Link href="/images/DECISI~1_INCIDENT.PDF" className="text-lg font-semibold text-white">Arreté d'incident</Link>
+          </div>
+          <div className="hidden lg:flex lg:flex-1 lg:justify-end">
+            <Link href="/login_register" className="text-lg font-semibold text-white">
+              Se Connecter <span aria-hidden="true">&rarr;</span>
+            </Link>
+          </div>
+        </nav>
+      </header>
                 <div className="relative isolate px-6 pt-14 lg:px-8">
                     {/* Image de fond pleine page */}
                     <img
