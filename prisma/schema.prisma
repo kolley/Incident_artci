@@ -13,47 +13,61 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// Table des utilisateurs
-model User {
-  id       Int      @id @default(autoincrement())
-  email    String   @unique
-  password String
-  profil   Profil?  @relation(fields: [profilId], references: [id])
-  profilId Int?     // clé étrangère vers Profil
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-// Table des profils
+// Table des profil
 model Profil {
-  id          Int      @id @default(autoincrement())
-  nom         String
-  description String?
-  users       User[]   // relation inverse, un profil peut être attribué à plusieurs utilisateurs
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id_Profil    String     @id 
+  nom_profil   String
+  description  String?
+  users        User[]  // relation inverse
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 }
 
-// Table des formulaires
-model Formulaire {
-  id               Int       @id @default(autoincrement())
-  operateur        String  // obligatoire
-  reference        String?   // optionnel
-  intitule         String  // obligatoire
-  descriptif       String  // obligatoire
-  zone             String  // obligatoire
-  localite         String  // obligatoire
-  communes         String  // obligatoire
-  abonnesimpactes  Int  // obligatoire
-  typeIncident     String  // obligatoire
-  noeudsTouches    Int  // obligatoire
-  impacts          String  // obligatoire
-  resolution       String  // obligatoire
-  dateNotification DateTime
-  dateDebut        DateTime? // optionnel
-  dateFin          DateTime? // optionnel
-  observation      String?   // optionnel
-  etat             String    // obligatoire
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
+model User {
+  id_user       Int           @id @default(autoincrement())
+  email         String        @unique
+  password      String
+  nom_user      String
+  id_Profil     String?          
+  nom_profil        Profil?       @relation(fields: [id_Profil], references: [id_Profil])
+  formulaires   Formulaire[]  
+  notifications Notification[]
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
 }
+
+model Formulaire {
+  id_formulaire   Int      @id @default(autoincrement())
+  id_user         Int
+  user            User     @relation(fields: [id_user], references: [id_user])
+  operateur       String
+  reference       String?
+  intitule        String
+  descriptif      String
+  zone            String
+  localite        String
+  communes        String
+  abonnesimpactes Int
+  typeIncident    String
+  noeudsTouches   Int
+  impacts         String
+  resolution      String
+  dateNotification DateTime
+  dateDebut       DateTime?
+  dateFin         DateTime?
+  observation     String?
+  etat            String
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model Notification {
+  id_notification Int      @id @default(autoincrement())
+  id_user         Int
+  user            User     @relation(fields: [id_user], references: [id_user])
+  message         String?
+  dateMessage     DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+

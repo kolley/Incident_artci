@@ -1,8 +1,12 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/router";
 import axios from "axios";
 import Link from "next/link";
 
 export default function IncidentForm() {
+  const router = useRouter();
+  const [userProfil, setUserProfil] = useState(null); // 👈 Ajouté
+  
   const [formData, setFormData] = useState({
     operateur: "",
     reference: "",
@@ -23,6 +27,20 @@ export default function IncidentForm() {
     etat: "",
   });
 
+  // 👇 Vérifier le profil de l'utilisateur connecté
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (token) {
+      try {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        setUserProfil(payload.profil);
+        console.log("👤 Profil utilisateur:", payload.profil);
+      } catch (error) {
+        console.error("Erreur décodage token:", error);
+      }
+    }
+  }, []);
+
   const handleChange = (e) => {
     setFormData({
       ...formData,
@@ -33,8 +51,24 @@ export default function IncidentForm() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await axios.post("/api/formulaire", formData);
+      const token = localStorage.getItem("token");
+      
+      console.log("🔑 Token récupéré:", token ? "✅ Présent" : "❌ Absent");
+
+      if (!token) {
+        alert("⚠️ Vous devez être connecté pour soumettre un incident.");
+        router.push("/login"); // 👈 Changé de /login_register à /login
+        return;
+      }
+
+      await axios.post("/api/formulaire", formData, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
       alert("Incident déclaré avec succès ✅");
+      
       setFormData({
         operateur: "",
         reference: "",
@@ -55,12 +89,18 @@ export default function IncidentForm() {
         etat: "",
       });
     } catch (err) {
-      console.error(err);
-      alert("Erreur lors de la déclaration ❌");
+      console.error("Erreur:", err);
+      
+      if (err.response?.status === 401) {
+        alert("⚠️ Session expirée, veuillez vous reconnecter.");
+        localStorage.removeItem("token");
+        router.push("/login"); // 👈 Changé de /login_register à /login
+      } else {
+        alert(err.response?.data?.error || "Erreur lors de la déclaration ❌");
+      }
     }
   };
 
-  // Classe dynamique pour les inputs
   const getInputClass = (value, required = true) => {
     const baseClass = "w-full border-2 p-3 rounded-lg transition-all duration-300 focus:outline-none focus:ring-2";
     if (value) {
@@ -71,14 +111,12 @@ export default function IncidentForm() {
 
   return (
     <div className="h-screen bg-orange-500/80 relative overflow-hidden">
-      {/* Image de fond pleine page */}
       <img
         src="/images/image-fond.jpg"
         alt="Image de fond ARTCI"
         className="absolute inset-0 w-full h-full object-cover opacity-10 mix-blend-multiply z-0"
       />
 
-      {/* Dégradé décoratif */}
       <div aria-hidden="true" className="absolute inset-x-0 -top-40 -z-10 transform-gpu overflow-hidden blur-3xl sm:-top-80">
         <div
           style={{
@@ -95,26 +133,43 @@ export default function IncidentForm() {
           <div className="bg-white-800 flex lg:flex-1">
             <Link href="/" className="-m-1.5 p-1.5">
               <span className="sr-only">Accueil</span>
-              <img src="/images/ARTCI-2_img.png" alt="Logo ARTCI" className="w-24 h-30 object-contain" />
+              <img src="/images/ARTCI-2_img.png" alt="Logo ARTCI" className="h-16 w-auto object-contain" />
             </Link>
           </div>
           <div className="hidden lg:flex lg:gap-x-12">
-            <Link href="#" className="text-lg font-semibold text-white">Accueil</Link>
+            <Link href="/" className="text-lg font-semibold text-white">Accueil</Link>
             <Link href="https://www.artci.ci/" className="text-lg font-semibold text-white">A propos</Link>
-            <Link href="/images/DECISI~1_INCIDENT.PDF" className="text-lg font-semibold text-white">Arreté d'incident</Link>
+            <Link href="/images/DECISI~1_INCIDENT.PDF" className="text-lg font-semibold text-white">Arrêté d'incident</Link>
+            
+            {/* 👇 Lien visible uniquement pour SUPER_1 et SUP_AD0 */}
+            {["SUP_AD0", "SUPER_1"].includes(userProfil) && (
+              <Link href="/register" className="text-lg font-semibold text-white hover:text-orange-200 transition">
+                Créer un utilisateur
+              </Link>
+            )}
+            
+            {/* 👇 Lien pour voir les incidents */}
+            <Link href="/enregistrement" className="text-lg font-semibold text-white hover:text-orange-200 transition">
+              Voir les incidents
+            </Link>
           </div>
           <div className="hidden lg:flex lg:flex-1 lg:justify-end">
-            <Link href="/login_register" className="text-lg font-semibold text-white">
-              Se Connecter <span aria-hidden="true">&rarr;</span>
-            </Link>
+            <button
+              onClick={() => {
+                localStorage.removeItem("token");
+                router.push("/login"); // 👈 Changé de /login_register à /login
+              }}
+              className="text-lg font-semibold text-white hover:text-orange-200 transition"
+            >
+              Se Déconnecter <span aria-hidden="true">&rarr;</span>
+            </button>
           </div>
         </nav>
       </header>
 
-      {/* Conteneur avec défilement - ESPACE AJOUTÉ */}
+      {/* Conteneur avec défilement */}
       <div className="relative z-10 h-full pt-32 pb-16 px-4 flex items-center justify-center">
         <div className="w-full max-w-4xl h-full flex flex-col">
-          {/* Titre fixe */}
           <div className="bg-white rounded-t-2xl shadow-2xl p-6 text-center">
             <h1 className="text-3xl font-bold text-orange-600 mb-1">
               📋 Déclaration d'Incident
@@ -122,11 +177,9 @@ export default function IncidentForm() {
             <p className="text-gray-600 text-sm">Remplissez tous les champs obligatoires (*)</p>
           </div>
 
-          {/* Formulaire défilant */}
-          <div className="bg-white shadow-2xl flex-1 overflow-y-auto px-8 py-6 scrollbar-thin scrollbar-thumb-orange-500 scrollbar-track-orange-100">
+          <div className="bg-white shadow-2xl flex-1 overflow-y-auto px-8 py-6">
             <form onSubmit={handleSubmit} className="space-y-5">
 
-              {/* --- Première partie --- */}
               <div className="space-y-2">
                 <label className="block text-sm font-semibold text-gray-700">
                   Opérateur <span className="text-red-500">*</span>
@@ -150,7 +203,7 @@ export default function IncidentForm() {
 
               <div className="space-y-2">
                 <label className="block text-sm font-semibold text-gray-700">
-                  Référence Incident <span className="text-red-500">(optionnel)</span>
+                  Référence Incident <span className="text-gray-400">(optionnel)</span>
                 </label>
                 <input
                   type="text"
@@ -158,8 +211,7 @@ export default function IncidentForm() {
                   value={formData.reference}
                   onChange={handleChange}
                   placeholder="Ex: INC-2025-001"
-                  className={getInputClass(formData.reference)}
-
+                  className={getInputClass(formData.reference, false)}
                 />
               </div>
 
@@ -255,7 +307,6 @@ export default function IncidentForm() {
                 />
               </div>
 
-              {/* --- Deuxième partie --- */}
               <div className="border-t-2 border-orange-200 pt-4 mt-6">
                 <h2 className="text-xl font-bold text-orange-600 mb-4">Détails de l'incident</h2>
               </div>
@@ -272,9 +323,9 @@ export default function IncidentForm() {
                   required
                 >
                   <option value="">Sélectionner un type</option>
-                  <option value="Panne">CRITIQUE</option>
-                  <option value="Coupure">MAJEUR</option>
-                  <option value="Cyberattaque">MINEUR</option>
+                  <option value="CRITIQUE">CRITIQUE</option>
+                  <option value="MAJEUR">MAJEUR</option>
+                  <option value="MINEUR">MINEUR</option>
                 </select>
               </div>
 
@@ -322,8 +373,23 @@ export default function IncidentForm() {
                   rows="3"
                   required
                 ></textarea>
-                
-              </div><div className="space-y-2">
+              </div>
+
+              <div className="space-y-2">
+                <label className="block text-sm font-semibold text-gray-700">
+                  Date de notification <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="datetime-local"
+                  name="dateNotification"
+                  value={formData.dateNotification}
+                  onChange={handleChange}
+                  className={getInputClass(formData.dateNotification)}
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
                 <label className="block text-sm font-semibold text-gray-700">
                   État de l'incident <span className="text-red-500">*</span>
                 </label>
@@ -343,32 +409,29 @@ export default function IncidentForm() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <label className="block text-sm font-semibold text-gray-700">
-                    Début <span className="text-red-500">{formData.etat === "Clos" && "*"}</span>
+                    Début {formData.etat === "Clos" && <span className="text-red-500">*</span>}
                   </label>
                   <input
                     type="datetime-local"
                     name="dateDebut"
                     value={formData.dateDebut}
                     onChange={handleChange}
-                    className={getInputClass(formData.dateDebut)}
-                    required={formData.etat === "Clos"}   // ✅ obligatoire seulement si Clos
+                    className={getInputClass(formData.dateDebut, formData.etat === "Clos")}
+                    required={formData.etat === "Clos"}
                   />
                 </div>
 
                 <div className="space-y-2">
                   <label className="block text-sm font-semibold text-gray-700">
-                    Fin{" "}
-                    <span className={formData.etat === "Clos" ? "text-red-500" : "text-gray-400"}>
-                      {formData.etat === "Clos" && "*" }
-                    </span>
+                    Fin {formData.etat === "Clos" && <span className="text-red-500">*</span>}
                   </label>
                   <input
                     type="datetime-local"
                     name="dateFin"
                     value={formData.dateFin}
                     onChange={handleChange}
-                    className={getInputClass(formData.dateFin)}
-                    required={formData.etat === "Clos"}   // ✅ obligatoire seulement si Clos
+                    className={getInputClass(formData.dateFin, formData.etat === "Clos")}
+                    required={formData.etat === "Clos"}
                   />
                 </div>
               </div>
@@ -386,57 +449,47 @@ export default function IncidentForm() {
                   rows="3"
                 ></textarea>
               </div>
-            </form>
-          </div>
 
-          {/* Boutons fixes en bas */}
-          <div className="bg-white rounded-b-2xl shadow-2xl p-6">
-            <div className="flex flex-col sm:flex-row justify-between gap-4">
-              <button
-                type="button"
-                className="px-6 py-3 rounded-lg font-semibold bg-gray-200 text-gray-700 hover:bg-gray-300 transition-all duration-300 hover:shadow-lg"
-                onClick={() =>
-                  setFormData({
-                    operateur: "",
-                    reference: "",
-                    intitule: "",
-                    descriptif: "",
-                    zone: "",
-                    localite: "",
-                    communes: "",
-                    abonnesImpactes: "",
-                    typeIncident: "",
-                    noeudsTouches: "",
-                    impacts: "",
-                    resolution: "",
-                    dateNotification: "",
-                    dateDebut: "",
-                    dateFin: "",
-                    observation: "",
-                    etat: "",
-                  })
-                }
-              >
-                🔄 Réinitialiser
-              </button>
-              <button
-                type="submit"
-                onClick={(e) => {
-                  const form = document.querySelector('form');
-                  if (form) {
-                    handleSubmit(e);
+              <div className="flex flex-col sm:flex-row justify-between gap-4 pt-4">
+                <button
+                  type="button"
+                  className="px-6 py-3 rounded-lg font-semibold bg-gray-200 text-gray-700 hover:bg-gray-300 transition-all duration-300 hover:shadow-lg"
+                  onClick={() =>
+                    setFormData({
+                      operateur: "",
+                      reference: "",
+                      intitule: "",
+                      descriptif: "",
+                      zone: "",
+                      localite: "",
+                      communes: "",
+                      abonnesimpactes: "",
+                      typeIncident: "",
+                      noeudsTouches: "",
+                      impacts: "",
+                      resolution: "",
+                      dateNotification: "",
+                      dateDebut: "",
+                      dateFin: "",
+                      observation: "",
+                      etat: "",
+                    })
                   }
-                }}
-                className="px-8 py-3 rounded-lg font-semibold bg-gradient-to-r from-orange-500 to-orange-600 text-white hover:from-orange-600 hover:to-orange-700 transition-all duration-300 hover:shadow-xl transform hover:scale-105"
-              >
-                ✅ Soumettre l'incident
-              </button>
-            </div>
+                >
+                  🔄 Réinitialiser
+                </button>
+                <button
+                  type="submit"
+                  className="px-8 py-3 rounded-lg font-semibold bg-gradient-to-r from-orange-500 to-orange-600 text-white hover:from-orange-600 hover:to-orange-700 transition-all duration-300 hover:shadow-xl transform hover:scale-105"
+                >
+                  ✅ Soumettre l'incident
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       </div>
 
-      {/* Footer - ESPACE AJOUTÉ */}
       <footer className="absolute bottom-4 left-0 right-0 z-10 text-center text-orange-200 text-sm">
         © 2025 ARTCI - Tous droits réservés
       </footer>

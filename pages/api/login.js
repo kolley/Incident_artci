@@ -1,54 +1,57 @@
 import prisma from "../../service/config/prisma";
-import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
-
-
+import bcrypt from "bcryptjs";
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {
-    return res.status(405).json({ error: "Méthode non autorisée" });
+    return res.status(405).json({ message: "Méthode non autorisée" });
   }
 
   const { email, password } = req.body;
 
-  // Vérification des champs
-  if (!email || !password) {
-    return res.status(400).json({ error: "Email et mot de passe requis" });
-  }
-
   try {
-    // Vérifie si l'utilisateur existe
-    const user = await prisma.user.findUnique({
-      where: { email },
-    });
+    const user = await prisma.user.findUnique({ where: { email } });
 
     if (!user) {
-      return res.status(401).json({ error: "Utilisateur introuvable" });
+      console.log("❌ Utilisateur non trouvé:", email);
+      return res.status(401).json({ message: "Utilisateur non trouvé" });
     }
 
-    // Vérifie le mot de passe
-    const isPasswordValid = await bcrypt.compare(password, user.password);
-    if (!isPasswordValid) {
-      return res.status(401).json({ error: "Mot de passe incorrect" });
+    const isValid = await bcrypt.compare(password, user.password);
+    if (!isValid) {
+      console.log("❌ Mot de passe incorrect");
+      return res.status(401).json({ message: "Mot de passe incorrect" });
     }
 
-    // Génère un token JWT
+    console.log("✅ Authentification réussie pour:", email);
+
+    // 🔐 Création du token avec les bons champs
     const token = jwt.sign(
-      { id: user.id, email: user.email },
-      process.env.JWT_SECRET || "c9136e124091b7b58e4e24280a11d27e", //  mon nom hacher
-      { expiresIn: "1h" }
+      { 
+        id: user.id_user,           // 👈 Corrigé : id_user au lieu de id
+        profil: user.id_Profil      // 👈 Corrigé : id_Profil au lieu de role
+      },
+      process.env.JWT_SECRET,
+      { expiresIn: "1d" }
     );
 
-    return res.status(200).json({
+    console.log("🔑 Token créé pour user ID:", user.id_user);
+
+    // 🍪 Cookie (optionnel)
+    res.setHeader('Set-Cookie', 
+      `token=${token}; Path=/; Max-Age=${60 * 60 * 24}; SameSite=Lax`
+    );
+
+    // ✅ Renvoyer le token dans la réponse JSON
+    return res.status(200).json({ 
       message: "Connexion réussie",
-      token,
-      user: {
-        id: user.id,
-        email: user.email,
-      },
+      token: token,
+      userName: user.nom_user,
+      profil: user.id_Profil
     });
+
   } catch (error) {
-    console.error("Erreur API Login:", error);
-    return res.status(500).json({ error: "Erreur interne du serveur" });
+    console.error("❌ Erreur login:", error);
+    return res.status(500).json({ message: "Erreur interne du serveur" });
   }
 }
