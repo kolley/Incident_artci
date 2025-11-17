@@ -171,8 +171,8 @@ export default function RegisterPage() {
         </form>
 
         <p className="text-center mt-4 text-gray-600 text-sm">
-          <Link href="/formulaire" className="text-orange-500 underline">
-            Retour au formulaire
+          <Link href="/dashboard" className="text-orange-500 underline">
+            Retour au dashboard
           </Link>
         </p>
       </div>

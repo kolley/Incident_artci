@@ -1,3 +1,4 @@
+// pages/enregistrement.js
 import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import Link from "next/link";
@@ -9,7 +10,7 @@ export default function IncidentsPage() {
   const [incidents, setIncidents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [userProfil, setUserProfil] = useState(null); // 👈 Ajouté
+  const [userProfil, setUserProfil] = useState(null);
   const [filter, setFilter] = useState({
     operateur: "",
     typeIncident: "",
@@ -27,41 +28,37 @@ export default function IncidentsPage() {
     try {
       setLoading(true);
       
-      // ✅ Récupérer le token
-      const token = localStorage.getItem("token");
-      
-      if (!token) {
-        alert("⚠️ Vous devez être connecté pour voir les incidents");
-        router.push("/login");
-        return;
-      }
-
-      // ✅ Envoyer le token dans l'en-tête
+      // ✅ CORRECTION : Utiliser credentials: "include" pour envoyer le cookie
       const response = await fetch('/api/enregistrement', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
+        method: "GET",
+        credentials: "include",  // ✅ Envoie automatiquement le cookie
       });
       
       const data = await response.json();
 
       if (response.status === 401) {
+        console.log("❌ Session expirée");
         alert("⚠️ Session expirée, veuillez vous reconnecter");
-        localStorage.removeItem("token");
-        router.push("/login");
+        router.push("/login_register");
+        return;
+      }
+
+      if (response.status === 403) {
+        console.log("❌ Accès refusé:", data.message);
+        alert(`⚠️ ${data.message}`);
         return;
       }
 
       if (data.success) {
         setIncidents(data.data);
-        setUserProfil(data.userProfil); // 👈 Sauvegarder le profil
+        setUserProfil(data.userProfil);
         console.log("✅ Incidents chargés:", data.total, "| Profil:", data.userProfil);
       } else {
         setError(data.message);
       }
     } catch (err) {
       setError('Erreur lors du chargement des incidents');
-      console.error(err);
+      console.error("❌ Erreur fetchIncidents:", err);
     } finally {
       setLoading(false);
     }
@@ -119,6 +116,21 @@ export default function IncidentsPage() {
     } catch (error) {
       console.error("❌ Erreur export Excel :", error);
       alert("Erreur lors de l'exportation du fichier Excel.");
+    }
+  };
+
+  // ✅ CORRECTION : Fonction de déconnexion avec cookies
+  const handleLogout = async () => {
+    try {
+      await fetch("/api/auth/logout", {
+        method: "POST",
+        credentials: "include"
+      });
+      console.log("✅ Déconnexion réussie");
+    } catch (error) {
+      console.error("❌ Erreur lors de la déconnexion:", error);
+    } finally {
+      router.push("/login_register");
     }
   };
 
@@ -209,11 +221,9 @@ export default function IncidentsPage() {
               </Link>
             )}
             
+            {/* ✅ CORRECTION : Utiliser la fonction handleLogout */}
             <button
-              onClick={() => {
-                localStorage.removeItem("token");
-                router.push("/login");
-              }}
+              onClick={handleLogout}
               className="text-gray-700 hover:text-orange-600 font-semibold transition"
             >
               Déconnexion

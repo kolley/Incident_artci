@@ -1,3 +1,4 @@
+// pages/api/formulaire.js
 import prisma from "../../service/config/prisma";
 import { verifyToken } from "../../service/middleware/auth";
 
@@ -10,17 +11,19 @@ export default async function handler(req, res) {
   const auth = verifyToken(req);
   
   if (!auth.success) {
-    console.log("❌ Authentification échouée:", auth.error);
+    console.log("❌ [formulaire] Authentification échouée:", auth.error);
     return res.status(401).json({ error: auth.error });
   }
 
-  const { id: id_user, profil: userProfil } = auth.user;
-  console.log("✅ Utilisateur authentifié - ID:", id_user, "Profil:", userProfil);
+  // ✅ CORRECTION : utiliser id_user et id_Profil (pas "id" et "profil")
+  const { id_user, id_Profil } = auth.user;
+  
+  console.log("✅ [formulaire] Utilisateur authentifié - ID:", id_user, "Profil:", id_Profil);
 
   // ✅ Vérifier que l'utilisateur peut créer des incidents
   const allowedProfils = ["SUP_AD0", "SUPER_1", "SUPER_2", "USER_3"];
-  if (!allowedProfils.includes(userProfil)) {
-    console.log("❌ Profil non autorisé:", userProfil);
+  if (!allowedProfils.includes(id_Profil)) {
+    console.log("❌ [formulaire] Profil non autorisé:", id_Profil);
     return res.status(403).json({ 
       error: "Vous n'avez pas la permission de créer des incidents" 
     });
@@ -41,7 +44,6 @@ export default async function handler(req, res) {
       noeudsTouches,
       impacts,
       resolution,
-      dateNotification,
       dateDebut,
       dateFin,
       observation,
@@ -49,6 +51,7 @@ export default async function handler(req, res) {
     } = req.body;
 
     // ✅ Validation des champs obligatoires
+    // ⚠️ CORRECTION : dateNotification RETIRÉ (sera généré automatiquement)
     if (
       !operateur ||
       !intitule ||
@@ -61,11 +64,19 @@ export default async function handler(req, res) {
       !noeudsTouches ||
       !impacts ||
       !resolution ||
-      !dateNotification ||
       !etat
     ) {
+      console.log("❌ [formulaire] Champs manquants");
       return res.status(400).json({ 
         error: "Certains champs obligatoires ne sont pas remplis." 
+      });
+    }
+
+    // ✅ Validation supplémentaire pour l'état "Clos"
+    if (etat === "Clos" && (!dateDebut || !dateFin)) {
+      console.log("❌ [formulaire] Dates manquantes pour incident clos");
+      return res.status(400).json({
+        error: "Les dates de début et de fin sont obligatoires pour un incident clos.",
       });
     }
 
@@ -84,7 +95,7 @@ export default async function handler(req, res) {
         noeudsTouches: parseInt(noeudsTouches),
         impacts,
         resolution,
-        dateNotification: new Date(dateNotification),
+        dateNotification: new Date(),  // ✅ CORRECTION : Généré automatiquement par le système
         dateDebut: dateDebut ? new Date(dateDebut) : null,
         dateFin: dateFin ? new Date(dateFin) : null,
         observation: observation || null,
@@ -93,7 +104,7 @@ export default async function handler(req, res) {
       },
     });
 
-    console.log("✅ Incident créé avec succès:", incident.id_formulaire, "par", userProfil);
+    console.log("✅ [formulaire] Incident créé:", incident.id_formulaire, "par User ID:", id_user);
 
     return res.status(201).json({ 
       message: "Incident enregistré avec succès ✅", 
@@ -101,7 +112,7 @@ export default async function handler(req, res) {
     });
 
   } catch (error) {
-    console.error("❌ Erreur lors de l'enregistrement:", error);
+    console.error("❌ [formulaire] Erreur lors de l'enregistrement:", error);
     return res.status(500).json({ 
       error: "Erreur interne du serveur",
       details: error.message 

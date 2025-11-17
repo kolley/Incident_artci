@@ -11,16 +11,29 @@ export default function LoginPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    // 🟦 LOGS DE DEBUG FRONT-END
+    console.log("Email envoyé :", email);
+    console.log("Mot de passe envoyé :", password);
+      
     try {
       const response = await axios.post("/api/login", { email, password });
       
       // Sauvegarder le token
-      localStorage.setItem("token", response.data.token);
-      
-      console.log("✅ Connexion réussie - Profil:", response.data.profil);
-      
-      // Redirection
-      router.push("/dashboard"); // au lieu de "/formulaire"
+    try {
+    const response = await axios.post("/api/login", { email, password });
+
+    console.log("✅ Connexion réussie - Profil:", response.data.profil);
+
+    // Pas besoin d'enregistrer le token → il est déjà dans les cookies !
+    console.log("✅ Connexion réussie - Profil:", response.data.profil);
+     // Redirection vers le tableau de bord
+    router.push("/dashboard");
+
+} catch (error) {
+    console.error("Erreur :", error);
+    alert(error.response?.data?.message || "Échec de la connexion");
+}
       
     } catch (error) {
       console.error("Erreur :", error);
@@ -30,6 +43,11 @@ export default function LoginPage() {
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-orange-500/80 relative">
+      <img
+                        src="/images/image-fond.jpg"
+                        alt="Image de fond ARTCI"
+                        className="absolute inset-0 w-full h-screen object-cover opacity-10 mix-blend-multiply z-0"
+                    />
       <div className="bg-white shadow-lg rounded-2xl p-8 w-full max-w-md relative z-10">
         <div className="text-center mb-6">
           <span className="text-4xl">🔒</span>

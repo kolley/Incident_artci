@@ -1,3 +1,4 @@
+// pages/dashboard.js
 import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import Link from "next/link";
@@ -29,56 +30,80 @@ export default function Dashboard() {
     });
 
     useEffect(() => {
-        const token = localStorage.getItem("token");
-        if (!token) {
-            router.push("/login");
-            return;
-        }
+        const verifyUser = async () => {
+            try {
+                const res = await fetch("/api/user/me", {
+                    method: "GET",
+                    credentials: "include"
+                });
 
-        try {
-            const payload = JSON.parse(atob(token.split('.')[1]));
-            setUserProfil(payload.profil);
+                if (!res.ok) {
+                    console.log("❌ Utilisateur non authentifié");
+                    router.push("/login_register");  // ✅ CORRECTION : cohérent
+                    return;
+                }
 
-            // Récupérer les infos utilisateur depuis le token ou une API
-            fetchUserInfo(token);
-            fetchStats(token);
-        } catch (error) {
-            console.error("Erreur:", error);
-            router.push("/login");
-        }
+                const data = await res.json();
+
+                console.log("✅ Utilisateur récupéré:", data.nom, "- Profil:", data.profil);
+
+                setUserProfil(data.profil);
+                setUserName(data.nom);
+
+                // ✅ CORRECTION : Charger les stats APRÈS avoir défini le profil
+                fetchStats();
+
+            } catch (error) {
+                console.error("❌ Erreur verifyUser:", error);
+                router.push("/login_register");
+            }
+        };
+
+        verifyUser();
     }, [router]);
 
-    const fetchUserInfo = async (token) => {
-        // Tu peux créer une API pour récupérer les infos complètes de l'utilisateur
+    // 🔥 Récupère les stats avec le JWT automatiquement envoyé par le cookie
+    const fetchStats = async () => {
         try {
-            const payload = JSON.parse(atob(token.split('.')[1]));
-            // Pour l'instant, on simule avec les données du token
-            setUserName("Utilisateur"); // Remplace par les vraies données
-        } catch (error) {
-            console.error("Erreur:", error);
-        }
-    };
-
-    const fetchStats = async (token) => {
-        try {
-            const response = await fetch('/api/dashboard/stats', {
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                },
+            const res = await fetch("/api/dashboard/stats", {
+                method: "GET",
+                credentials: "include"
             });
 
-            if (response.ok) {
-                const data = await response.json();
-                setStats(data);
+            if (!res.ok) {
+                console.error("❌ Erreur stats:", await res.text());
+                return;
             }
+
+            const data = await res.json();
+            console.log("📊 Stats récupérées:", data);
+            setStats(data);
+
         } catch (error) {
-            console.error("Erreur chargement stats:", error);
+            console.error("❌ Erreur fetchStats:", error);
         }
     };
 
-    const handleLogout = () => {
-        localStorage.removeItem("token");
-        router.push("/login");
+    // 🔥 VRAIE DÉCONNEXION AVEC COOKIE
+    const handleLogout = async () => {
+        try {
+            // ✅ CORRECTION : route correcte /api/auth/logout
+            const res = await fetch("/api/auth/logout", {
+                method: "POST",
+                credentials: "include",
+            });
+
+            if (!res.ok) {
+                console.error("⚠️ Erreur lors de la déconnexion");
+            }
+
+            console.log("✅ Déconnexion réussie");
+        } catch (error) {
+            console.error("❌ Erreur handleLogout:", error);
+        } finally {
+            // Rediriger dans tous les cas
+            router.push("/login_register");  // ✅ CORRECTION : cohérent
+        }
     };
 
     const getProfilLabel = (profil) => {
@@ -210,8 +235,8 @@ export default function Dashboard() {
                                     }
                                 }}
                                 className={`w-full flex items-center gap-3 p-3 rounded-lg transition-all ${isActive
-                                        ? 'bg-white text-orange-600 shadow-lg'
-                                        : 'hover:bg-orange-500'
+                                    ? 'bg-white text-orange-600 shadow-lg'
+                                    : 'hover:bg-orange-500'
                                     }`}
                             >
                                 <Icon size={20} />

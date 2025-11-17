@@ -1,11 +1,12 @@
+// pages/formulaire.js
 import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
-import axios from "axios";
 import Link from "next/link";
 
 export default function IncidentForm() {
   const router = useRouter();
-  const [userProfil, setUserProfil] = useState(null); // 👈 Ajouté
+  const [userName, setUserName] = useState("");
+  const [loading, setLoading] = useState(true);
   
   const [formData, setFormData] = useState({
     operateur: "",
@@ -20,26 +21,42 @@ export default function IncidentForm() {
     noeudsTouches: "",
     impacts: "",
     resolution: "",
-    dateNotification: "",
+    // ✅ SUPPRIMÉ : dateNotification (généré automatiquement par le backend)
     dateDebut: "",
     dateFin: "",
     observation: "",
     etat: "",
   });
 
-  // 👇 Vérifier le profil de l'utilisateur connecté
+  // ✅ Récupération des informations de l'utilisateur connecté
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (token) {
+    const fetchUserInfo = async () => {
       try {
-        const payload = JSON.parse(atob(token.split('.')[1]));
-        setUserProfil(payload.profil);
-        console.log("👤 Profil utilisateur:", payload.profil);
+        const response = await fetch("/api/user/me", { 
+          method: "GET",
+          credentials: "include"
+        });
+
+        if (!response.ok) {
+          console.log("❌ Utilisateur non authentifié");
+          router.push("/login_register");
+          return;
+        }
+
+        const data = await response.json();
+        console.log("✅ Utilisateur récupéré:", data.nom);
+        
+        setUserName(data.nom || data.email || "Utilisateur");
       } catch (error) {
-        console.error("Erreur décodage token:", error);
+        console.error("❌ Erreur lors de la récupération des infos utilisateur:", error);
+        router.push("/login_register");
+      } finally {
+        setLoading(false);
       }
-    }
-  }, []);
+    };
+
+    fetchUserInfo();
+  }, [router]);
 
   const handleChange = (e) => {
     setFormData({
@@ -48,27 +65,29 @@ export default function IncidentForm() {
     });
   };
 
+  // ✅ Envoi du formulaire
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
     try {
-      const token = localStorage.getItem("token");
-      
-      console.log("🔑 Token récupéré:", token ? "✅ Présent" : "❌ Absent");
-
-      if (!token) {
-        alert("⚠️ Vous devez être connecté pour soumettre un incident.");
-        router.push("/login"); // 👈 Changé de /login_register à /login
-        return;
-      }
-
-      await axios.post("/api/formulaire", formData, {
+      const response = await fetch("/api/formulaire", {
+        method: "POST",
         headers: {
-          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
         },
+        credentials: "include",
+        body: JSON.stringify(formData),
       });
 
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Erreur lors de la déclaration");
+      }
+
+      console.log("✅ Incident déclaré avec succès");
       alert("Incident déclaré avec succès ✅");
       
+      // Réinitialiser le formulaire
       setFormData({
         operateur: "",
         reference: "",
@@ -82,22 +101,36 @@ export default function IncidentForm() {
         noeudsTouches: "",
         impacts: "",
         resolution: "",
-        dateNotification: "",
         dateDebut: "",
         dateFin: "",
         observation: "",
         etat: "",
       });
+
     } catch (err) {
-      console.error("Erreur:", err);
+      console.error("❌ Erreur:", err);
       
-      if (err.response?.status === 401) {
-        alert("⚠️ Session expirée, veuillez vous reconnecter.");
-        localStorage.removeItem("token");
-        router.push("/login"); // 👈 Changé de /login_register à /login
+      if (err.message.includes("Token") || err.message.includes("authentifié")) {
+        alert("Session expirée. Veuillez vous reconnecter.");
+        router.push("/login_register");
       } else {
-        alert(err.response?.data?.error || "Erreur lors de la déclaration ❌");
+        alert(`Erreur: ${err.message}`);
       }
+    }
+  };
+
+  // ✅ Fonction de déconnexion
+  const handleLogout = async () => {
+    try {
+      await fetch("/api/auth/logout", {
+        method: "POST",
+        credentials: "include"
+      });
+      console.log("✅ Déconnexion réussie");
+    } catch (error) {
+      console.error("❌ Erreur lors de la déconnexion:", error);
+    } finally {
+      router.push("/login_register");
     }
   };
 
@@ -127,7 +160,6 @@ export default function IncidentForm() {
         ></div>
       </div>
 
-      {/* Header */}
       <header className="absolute inset-x-0 top-0 z-50">
         <nav aria-label="Global" className="bg-white-800 flex items-center justify-between p-6 lg:px-8">
           <div className="bg-white-800 flex lg:flex-1">
@@ -137,37 +169,27 @@ export default function IncidentForm() {
             </Link>
           </div>
           <div className="hidden lg:flex lg:gap-x-12">
-            <Link href="/" className="text-lg font-semibold text-white">Accueil</Link>
-            <Link href="https://www.artci.ci/" className="text-lg font-semibold text-white">A propos</Link>
-            <Link href="/images/DECISI~1_INCIDENT.PDF" className="text-lg font-semibold text-white">Arrêté d'incident</Link>
-            
-            {/* 👇 Lien visible uniquement pour SUPER_1 et SUP_AD0 */}
-            {["SUP_AD0", "SUPER_1"].includes(userProfil) && (
-              <Link href="/register" className="text-lg font-semibold text-white hover:text-orange-200 transition">
-                Créer un utilisateur
-              </Link>
-            )}
-            
-            {/* 👇 Lien pour voir les incidents */}
-            <Link href="/enregistrement" className="text-lg font-semibold text-white hover:text-orange-200 transition">
-              Voir les incidents
-            </Link>
+            <Link href="#" className="text-lg font-semibold text-white">Accueil</Link>
+            <Link href="/dashboard" className="text-lg font-semibold text-white">dashboard</Link>
           </div>
-          <div className="hidden lg:flex lg:flex-1 lg:justify-end">
-            <button
-              onClick={() => {
-                localStorage.removeItem("token");
-                router.push("/login"); // 👈 Changé de /login_register à /login
-              }}
-              className="text-lg font-semibold text-white hover:text-orange-200 transition"
-            >
-              Se Déconnecter <span aria-hidden="true">&rarr;</span>
-            </button>
+          <div className="hidden lg:flex lg:flex-1 lg:justify-end lg:items-center lg:gap-4">
+            {!loading && (
+              <>
+                <span className="text-white font-medium bg-white/20 px-4 py-2 rounded-lg backdrop-blur-sm">
+                  👤 {userName}
+                </span>
+                <button 
+                  onClick={handleLogout}
+                  className="text-lg font-semibold text-white hover:text-orange-200 transition-colors"
+                >
+                  Se Déconnecter <span aria-hidden="true">&rarr;</span>
+                </button>
+              </>
+            )}
           </div>
         </nav>
       </header>
 
-      {/* Conteneur avec défilement */}
       <div className="relative z-10 h-full pt-32 pb-16 px-4 flex items-center justify-center">
         <div className="w-full max-w-4xl h-full flex flex-col">
           <div className="bg-white rounded-t-2xl shadow-2xl p-6 text-center">
@@ -177,7 +199,7 @@ export default function IncidentForm() {
             <p className="text-gray-600 text-sm">Remplissez tous les champs obligatoires (*)</p>
           </div>
 
-          <div className="bg-white shadow-2xl flex-1 overflow-y-auto px-8 py-6">
+          <div className="bg-white shadow-2xl flex-1 overflow-y-auto px-8 py-6 scrollbar-thin scrollbar-thumb-orange-500 scrollbar-track-orange-100">
             <form onSubmit={handleSubmit} className="space-y-5">
 
               <div className="space-y-2">
@@ -203,7 +225,7 @@ export default function IncidentForm() {
 
               <div className="space-y-2">
                 <label className="block text-sm font-semibold text-gray-700">
-                  Référence Incident <span className="text-gray-400">(optionnel)</span>
+                  Référence Incident <span className="text-red-500">(optionnel)</span>
                 </label>
                 <input
                   type="text"
@@ -211,7 +233,7 @@ export default function IncidentForm() {
                   value={formData.reference}
                   onChange={handleChange}
                   placeholder="Ex: INC-2025-001"
-                  className={getInputClass(formData.reference, false)}
+                  className={getInputClass(formData.reference)}
                 />
               </div>
 
@@ -377,20 +399,6 @@ export default function IncidentForm() {
 
               <div className="space-y-2">
                 <label className="block text-sm font-semibold text-gray-700">
-                  Date de notification <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="datetime-local"
-                  name="dateNotification"
-                  value={formData.dateNotification}
-                  onChange={handleChange}
-                  className={getInputClass(formData.dateNotification)}
-                  required
-                />
-              </div>
-
-              <div className="space-y-2">
-                <label className="block text-sm font-semibold text-gray-700">
                   État de l'incident <span className="text-red-500">*</span>
                 </label>
                 <select
@@ -409,28 +417,31 @@ export default function IncidentForm() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <label className="block text-sm font-semibold text-gray-700">
-                    Début {formData.etat === "Clos" && <span className="text-red-500">*</span>}
+                    Début <span className="text-red-500">{formData.etat === "Clos" && "*"}</span>
                   </label>
                   <input
                     type="datetime-local"
                     name="dateDebut"
                     value={formData.dateDebut}
                     onChange={handleChange}
-                    className={getInputClass(formData.dateDebut, formData.etat === "Clos")}
+                    className={getInputClass(formData.dateDebut)}
                     required={formData.etat === "Clos"}
                   />
                 </div>
 
                 <div className="space-y-2">
                   <label className="block text-sm font-semibold text-gray-700">
-                    Fin {formData.etat === "Clos" && <span className="text-red-500">*</span>}
+                    Fin{" "}
+                    <span className={formData.etat === "Clos" ? "text-red-500" : "text-gray-400"}>
+                      {formData.etat === "Clos" && "*"}
+                    </span>
                   </label>
                   <input
                     type="datetime-local"
                     name="dateFin"
                     value={formData.dateFin}
                     onChange={handleChange}
-                    className={getInputClass(formData.dateFin, formData.etat === "Clos")}
+                    className={getInputClass(formData.dateFin)}
                     required={formData.etat === "Clos"}
                   />
                 </div>
@@ -450,6 +461,7 @@ export default function IncidentForm() {
                 ></textarea>
               </div>
 
+              {/* ✅ Boutons dans le form pour profiter du submit natif */}
               <div className="flex flex-col sm:flex-row justify-between gap-4 pt-4">
                 <button
                   type="button"
@@ -468,7 +480,6 @@ export default function IncidentForm() {
                       noeudsTouches: "",
                       impacts: "",
                       resolution: "",
-                      dateNotification: "",
                       dateDebut: "",
                       dateFin: "",
                       observation: "",
@@ -478,6 +489,8 @@ export default function IncidentForm() {
                 >
                   🔄 Réinitialiser
                 </button>
+                
+                {/* ✅ CORRECTION : Un seul déclencheur de submit */}
                 <button
                   type="submit"
                   className="px-8 py-3 rounded-lg font-semibold bg-gradient-to-r from-orange-500 to-orange-600 text-white hover:from-orange-600 hover:to-orange-700 transition-all duration-300 hover:shadow-xl transform hover:scale-105"
