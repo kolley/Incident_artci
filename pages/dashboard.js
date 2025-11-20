@@ -3,7 +3,6 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import Link from "next/link";
 import {
-    FaHome,
     FaFileAlt,
     FaListAlt,
     FaUserPlus,
@@ -13,7 +12,8 @@ import {
     FaCog,
     FaBell,
     FaBars,
-    FaTimes
+    FaTimes,
+    FaTimes as FaClose
 } from "react-icons/fa";
 
 export default function Dashboard() {
@@ -22,11 +22,44 @@ export default function Dashboard() {
     const [userName, setUserName] = useState("");
     const [activeTab, setActiveTab] = useState("stats");
     const [sidebarOpen, setSidebarOpen] = useState(true);
+
+    // ✅ Nouveau state pour gérer l'affichage des formulaires
+    const [showIncidentForm, setShowIncidentForm] = useState(false);
+    const [showUserForm, setShowUserForm] = useState(false);
+
     const [stats, setStats] = useState({
         totalIncidents: 0,
         incidentsClos: 0,
         incidentsEnCours: 0,
         mesIncidents: 0
+    });
+
+    // État du formulaire d'incident
+    const [incidentFormData, setIncidentFormData] = useState({
+        operateur: "",
+        reference: "",
+        intitule: "",
+        descriptif: "",
+        zone: "",
+        localite: "",
+        communes: "",
+        abonnesimpactes: "",
+        typeIncident: "",
+        noeudsTouches: "",
+        impacts: "",
+        resolution: "",
+        dateDebut: "",
+        dateFin: "",
+        observation: "",
+        etat: "",
+    });
+
+    // État du formulaire utilisateur
+    const [userFormData, setUserFormData] = useState({
+        nom_user: "",
+        email: "",
+        password: "",
+        id_Profil: ""
     });
 
     useEffect(() => {
@@ -39,18 +72,15 @@ export default function Dashboard() {
 
                 if (!res.ok) {
                     console.log("❌ Utilisateur non authentifié");
-                    router.push("/login_register");  // ✅ CORRECTION : cohérent
+                    router.push("/login_register");
                     return;
                 }
 
                 const data = await res.json();
-
                 console.log("✅ Utilisateur récupéré:", data.nom, "- Profil:", data.profil);
 
                 setUserProfil(data.profil);
                 setUserName(data.nom);
-
-                // ✅ CORRECTION : Charger les stats APRÈS avoir défini le profil
                 fetchStats();
 
             } catch (error) {
@@ -62,7 +92,6 @@ export default function Dashboard() {
         verifyUser();
     }, [router]);
 
-    // 🔥 Récupère les stats avec le JWT automatiquement envoyé par le cookie
     const fetchStats = async () => {
         try {
             const res = await fetch("/api/dashboard/stats", {
@@ -84,10 +113,8 @@ export default function Dashboard() {
         }
     };
 
-    // 🔥 VRAIE DÉCONNEXION AVEC COOKIE
     const handleLogout = async () => {
         try {
-            // ✅ CORRECTION : route correcte /api/auth/logout
             const res = await fetch("/api/auth/logout", {
                 method: "POST",
                 credentials: "include",
@@ -101,8 +128,104 @@ export default function Dashboard() {
         } catch (error) {
             console.error("❌ Erreur handleLogout:", error);
         } finally {
-            // Rediriger dans tous les cas
-            router.push("/login_register");  // ✅ CORRECTION : cohérent
+            router.push("/login_register");
+        }
+    };
+
+    // ✅ Gestion du formulaire d'incident
+    const handleIncidentChange = (e) => {
+        setIncidentFormData({
+            ...incidentFormData,
+            [e.target.name]: e.target.value,
+        });
+    };
+
+    const handleIncidentSubmit = async (e) => {
+        e.preventDefault();
+        try {
+            const response = await fetch("/api/formulaire", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                credentials: "include",
+                body: JSON.stringify(incidentFormData),
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || "Erreur lors de la déclaration");
+            }
+
+            alert("✅ Incident déclaré avec succès !");
+
+            // Réinitialiser et fermer
+            setIncidentFormData({
+                operateur: "",
+                reference: "",
+                intitule: "",
+                descriptif: "",
+                zone: "",
+                localite: "",
+                communes: "",
+                abonnesimpactes: "",
+                typeIncident: "",
+                noeudsTouches: "",
+                impacts: "",
+                resolution: "",
+                dateDebut: "",
+                dateFin: "",
+                observation: "",
+                etat: "",
+            });
+            setShowIncidentForm(false);
+            fetchStats(); // Rafraîchir les stats
+
+        } catch (err) {
+            console.error("❌ Erreur:", err);
+            alert(`Erreur: ${err.message}`);
+        }
+    };
+
+    // ✅ Gestion du formulaire utilisateur
+    const handleUserChange = (e) => {
+        setUserFormData({
+            ...userFormData,
+            [e.target.name]: e.target.value,
+        });
+    };
+
+    const handleUserSubmit = async (e) => {
+        e.preventDefault();
+        try {
+            const response = await fetch("/api/register", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                credentials: "include",
+                body: JSON.stringify(userFormData),
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || "Erreur lors de la création");
+            }
+
+            alert("✅ Utilisateur créé avec succès !");
+
+            // Réinitialiser et fermer
+            setUserFormData({
+                nom_user: "",
+                email: "",
+                password: "",
+                id_Profil: ""
+            });
+            setShowUserForm(false);
+
+        } catch (err) {
+            console.error("❌ Erreur:", err);
+            alert(`Erreur: ${err.message}`);
         }
     };
 
@@ -126,7 +249,14 @@ export default function Dashboard() {
         return colors[profil] || "bg-gray-100 text-gray-800";
     };
 
-    // Menu items selon le profil
+    const getInputClass = (value) => {
+        const baseClass = "w-full border-2 p-3 rounded-lg transition-all duration-300 focus:outline-none focus:ring-2";
+        if (value) {
+            return `${baseClass} border-green-400 bg-green-50 focus:border-green-500 focus:ring-green-200`;
+        }
+        return `${baseClass} border-gray-300 focus:border-orange-500 focus:ring-orange-200`;
+    };
+
     const menuItems = [
         {
             name: "Tableau de bord",
@@ -185,12 +315,10 @@ export default function Dashboard() {
         <div className="flex h-screen bg-gray-100">
             {/* Sidebar */}
             <aside className={`${sidebarOpen ? 'w-64' : 'w-20'} bg-gradient-to-b from-orange-500/80 to-orange-500/80 text-white transition-all duration-300 flex flex-col`}>
-                {/* Logo et Toggle */}
                 <div className="p-4 flex items-center justify-between border-b border-orange-500">
                     {sidebarOpen && (
                         <div className="flex items-center gap-3">
                             <img src="/images/ARTCI-2_img.png" alt="Logo" className="h-10 w-auto" />
-                            <span className="font-bold text-lg"></span>
                         </div>
                     )}
                     <button
@@ -201,7 +329,6 @@ export default function Dashboard() {
                     </button>
                 </div>
 
-                {/* User Info */}
                 <div className="p-4 border-b border-orange-500">
                     <div className="flex items-center gap-3">
                         <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center text-orange-600 font-bold">
@@ -218,7 +345,6 @@ export default function Dashboard() {
                     </div>
                 </div>
 
-                {/* Menu Items */}
                 <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
                     {filteredMenuItems.map((item, index) => {
                         const Icon = item.icon;
@@ -235,8 +361,8 @@ export default function Dashboard() {
                                     }
                                 }}
                                 className={`w-full flex items-center gap-3 p-3 rounded-lg transition-all ${isActive
-                                    ? 'bg-white text-orange-600 shadow-lg'
-                                    : 'hover:bg-orange-500'
+                                        ? 'bg-white text-orange-600 shadow-lg'
+                                        : 'hover:bg-orange-500'
                                     }`}
                             >
                                 <Icon size={20} />
@@ -246,7 +372,6 @@ export default function Dashboard() {
                     })}
                 </nav>
 
-                {/* Logout */}
                 <div className="p-4 border-t border-orange-500">
                     <button
                         onClick={handleLogout}
@@ -260,7 +385,6 @@ export default function Dashboard() {
 
             {/* Main Content */}
             <main className="flex-1 overflow-y-auto">
-                {/* Header */}
                 <header className="bg-white shadow-md p-6">
                     <div className="flex justify-between items-center">
                         <div>
@@ -282,9 +406,7 @@ export default function Dashboard() {
                     </div>
                 </header>
 
-                {/* Content Area */}
                 <div className="p-6">
-                    {/* Statistiques */}
                     {activeTab === "stats" && (
                         <div>
                             {/* Stats Cards */}
@@ -345,11 +467,16 @@ export default function Dashboard() {
                                 <h2 className="text-xl font-bold text-gray-800 mb-4">Actions rapides</h2>
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                     <button
-                                        onClick={() => router.push('/formulaire')}
+                                        onClick={() => {
+                                            setShowIncidentForm(!showIncidentForm);
+                                            setShowUserForm(false); // Fermer l'autre formulaire
+                                        }}
                                         className="p-4 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-lg hover:shadow-xl transition flex items-center gap-3"
                                     >
                                         <FaFileAlt size={24} />
-                                        <span className="font-semibold">Déclarer un incident</span>
+                                        <span className="font-semibold">
+                                            {showIncidentForm ? "Masquer le formulaire" : "Déclarer un incident"}
+                                        </span>
                                     </button>
 
                                     <button
@@ -362,15 +489,444 @@ export default function Dashboard() {
 
                                     {["SUP_AD0", "SUPER_1"].includes(userProfil) && (
                                         <button
-                                            onClick={() => router.push('/register')}
+                                            onClick={() => {
+                                                setShowUserForm(!showUserForm);
+                                                setShowIncidentForm(false); // Fermer l'autre formulaire
+                                            }}
                                             className="p-4 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg hover:shadow-xl transition flex items-center gap-3"
                                         >
                                             <FaUserPlus size={24} />
-                                            <span className="font-semibold">Créer un utilisateur</span>
+                                            <span className="font-semibold">
+                                                {showUserForm ? "Masquer le formulaire" : "Créer un utilisateur"}
+                                            </span>
                                         </button>
                                     )}
                                 </div>
                             </div>
+
+        {/* ✅ FORMULAIRE D'INCIDENT (affiché conditionnellement) */}
+                            {showIncidentForm && (
+                                <div className="bg-white rounded-xl shadow-2xl p-8 mb-8 border-2 border-orange-500">
+                                    <div className="flex justify-between items-center mb-6">
+                                        <h2 className="text-2xl font-bold text-orange-600">📋 Déclarer un incident</h2>
+                                        <button
+                                            onClick={() => setShowIncidentForm(false)}
+                                            className="p-2 hover:bg-gray-100 rounded-full transition"
+                                        >
+                                            <FaClose size={24} className="text-gray-600" />
+                                        </button>
+                                    </div>
+                                    
+                                    <form onSubmit={handleIncidentSubmit} className="space-y-5">
+                                        <div className="space-y-2">
+                                            <label className="block text-sm font-semibold text-gray-700">
+                                                Opérateur <span className="text-red-500">*</span>
+                                            </label>
+                                            <select
+                                                name="operateur"
+                                                value={incidentFormData.operateur}
+                                                onChange={handleIncidentChange}
+                                                className={getInputClass(incidentFormData.operateur)}
+                                                required
+                                            >
+                                                <option value="">Sélectionner un opérateur</option>
+                                                <option value="MOOV">MOOV CI</option>
+                                                <option value="MTN">MTN CI</option>
+                                                <option value="Orange_CI">ORANGE CI</option>
+                                                <option value="VIPNET">VIPNET</option>
+                                                <option value="AWALE">AWALE</option>
+                                                <option value="GVA">GVA</option>
+                                            </select>
+                                        </div>
+
+                                        <div className="space-y-2">
+                                            <label className="block text-sm font-semibold text-gray-700">
+                                                Référence Incident <span className="text-red-500">(optionnel)</span>
+                                            </label>
+                                            <input
+                                                type="text"
+                                                name="reference"
+                                                value={incidentFormData.reference}
+                                                onChange={handleIncidentChange}
+                                                placeholder="Ex: INC-2025-001"
+                                                className={getInputClass(incidentFormData.reference)}
+                                            />
+                                        </div>
+
+                                        <div className="space-y-2">
+                                            <label className="block text-sm font-semibold text-gray-700">
+                                                Intitulé de l'incident <span className="text-red-500">*</span>
+                                            </label>
+                                            <input
+                                                type="text"
+                                                name="intitule"
+                                                value={incidentFormData.intitule}
+                                                onChange={handleIncidentChange}
+                                                placeholder="Résumé court de l'incident"
+                                                className={getInputClass(incidentFormData.intitule)}
+                                                required
+                                            />
+                                        </div>
+
+                                        <div className="space-y-2">
+                                            <label className="block text-sm font-semibold text-gray-700">
+                                                Descriptif <span className="text-red-500">*</span>
+                                            </label>
+                                            <textarea
+                                                name="descriptif"
+                                                value={incidentFormData.descriptif}
+                                                onChange={handleIncidentChange}
+                                                placeholder="Description détaillée de l'incident..."
+                                                className={getInputClass(incidentFormData.descriptif)}
+                                                rows="3"
+                                                required
+                                            ></textarea>
+                                        </div>
+
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <div className="space-y-2">
+                                                <label className="block text-sm font-semibold text-gray-700">
+                                                    Zone impactée <span className="text-red-500">*</span>
+                                                </label>
+                                                <input
+                                                    type="text"
+                                                    name="zone"
+                                                    value={incidentFormData.zone}
+                                                    onChange={handleIncidentChange}
+                                                    placeholder="Ex: Abidjan Nord"
+                                                    className={getInputClass(incidentFormData.zone)}
+                                                    required
+                                                />
+                                            </div>
+                                            <div className="space-y-2">
+                                                <label className="block text-sm font-semibold text-gray-700">
+                                                    Localité <span className="text-red-500">*</span>
+                                                </label>
+                                                <input
+                                                    type="text"
+                                                    name="localite"
+                                                    value={incidentFormData.localite}
+                                                    onChange={handleIncidentChange}
+                                                    placeholder="Ex: Cocody"
+                                                    className={getInputClass(incidentFormData.localite)}
+                                                    required
+                                                />
+                                            </div>
+                                        </div>
+
+                                        <div className="space-y-2">
+                                            <label className="block text-sm font-semibold text-gray-700">
+                                                Communes impactées <span className="text-red-500">*</span>
+                                            </label>
+                                            <input
+                                                type="text"
+                                                name="communes"
+                                                value={incidentFormData.communes}
+                                                onChange={handleIncidentChange}
+                                                placeholder="Ex: Yopougon, Abobo, Adjamé"
+                                                className={getInputClass(incidentFormData.communes)}
+                                                required
+                                            />
+                                        </div>
+
+                                        <div className="space-y-2">
+                                            <label className="block text-sm font-semibold text-gray-700">
+                                                Nombre d'abonnés impactés <span className="text-red-500">*</span>
+                                            </label>
+                                            <input
+                                                type="number"
+                                                name="abonnesimpactes"
+                                                value={incidentFormData.abonnesimpactes}
+                                                onChange={handleIncidentChange}
+                                                placeholder="Ex: 15000"
+                                                className={getInputClass(incidentFormData.abonnesimpactes)}
+                                                min="0"
+                                                required
+                                            />
+                                        </div>
+
+                                        <div className="border-t-2 border-orange-200 pt-4 mt-6">
+                                            <h2 className="text-xl font-bold text-orange-600 mb-4">Détails de l'incident</h2>
+                                        </div>
+
+                                        <div className="space-y-2">
+                                            <label className="block text-sm font-semibold text-gray-700">
+                                                Type de l'incident <span className="text-red-500">*</span>
+                                            </label>
+                                            <select
+                                                name="typeIncident"
+                                                value={incidentFormData.typeIncident}
+                                                onChange={handleIncidentChange}
+                                                className={getInputClass(incidentFormData.typeIncident)}
+                                                required
+                                            >
+                                                <option value="">Sélectionner un type</option>
+                                                <option value="CRITIQUE">CRITIQUE</option>
+                                                <option value="MAJEUR">MAJEUR</option>
+                                                <option value="MINEUR">MINEUR</option>
+                                            </select>
+                                        </div>
+
+                                        <div className="space-y-2">
+                                            <label className="block text-sm font-semibold text-gray-700">
+                                                Nombre total de nœuds touchés <span className="text-red-500">*</span>
+                                            </label>
+                                            <input
+                                                type="number"
+                                                name="noeudsTouches"
+                                                value={incidentFormData.noeudsTouches}
+                                                onChange={handleIncidentChange}
+                                                placeholder="0"
+                                                className={getInputClass(incidentFormData.noeudsTouches)}
+                                                min="0"
+                                                required
+                                            />
+                                        </div>
+
+                                        <div className="space-y-2">
+                                            <label className="block text-sm font-semibold text-gray-700">
+                                                Impacts <span className="text-red-500">*</span>
+                                            </label>
+                                            <input
+                                                type="text"
+                                                name="impacts"
+                                                value={incidentFormData.impacts}
+                                                onChange={handleIncidentChange}
+                                                placeholder="Ex: Interruption de service, perte de connectivité"
+                                                className={getInputClass(incidentFormData.impacts)}
+                                                required
+                                            />
+                                        </div>
+
+                                        <div className="space-y-2">
+                                            <label className="block text-sm font-semibold text-gray-700">
+                                                Actions de résolution <span className="text-red-500">*</span>
+                                            </label>
+                                            <textarea
+                                                name="resolution"
+                                                value={incidentFormData.resolution}
+                                                onChange={handleIncidentChange}
+                                                placeholder="Décrivez les actions entreprises..."
+                                                className={getInputClass(incidentFormData.resolution)}
+                                                rows="3"
+                                                required
+                                            ></textarea>
+                                        </div>
+
+                                        <div className="space-y-2">
+                                            <label className="block text-sm font-semibold text-gray-700">
+                                                État de l'incident <span className="text-red-500">*</span>
+                                            </label>
+                                            <select
+                                                name="etat"
+                                                value={incidentFormData.etat}
+                                                onChange={handleIncidentChange}
+                                                className={getInputClass(incidentFormData.etat)}
+                                                required
+                                            >
+                                                <option value="">Sélectionner l'état</option>
+                                                <option value="Clos">Clos</option>
+                                                <option value="Non clos">Non clos</option>
+                                            </select>
+                                        </div>
+
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <div className="space-y-2">
+                                                <label className="block text-sm font-semibold text-gray-700">
+                                                    Début <span className="text-red-500">{incidentFormData.etat === "Clos" && "*"}</span>
+                                                </label>
+                                                <input
+                                                    type="datetime-local"
+                                                    name="dateDebut"
+                                                    value={incidentFormData.dateDebut}
+                                                    onChange={handleIncidentChange}
+                                                    className={getInputClass(incidentFormData.dateDebut)}
+                                                    required={incidentFormData.etat === "Clos"}
+                                                />
+                                            </div>
+
+                                            <div className="space-y-2">
+                                                <label className="block text-sm font-semibold text-gray-700">
+                                                    Fin{" "}
+                                                    <span className={incidentFormData.etat === "Clos" ? "text-red-500" : "text-gray-400"}>
+                                                        {incidentFormData.etat === "Clos" && "*"}
+                                                    </span>
+                                                </label>
+                                                <input
+                                                    type="datetime-local"
+                                                    name="dateFin"
+                                                    value={incidentFormData.dateFin}
+                                                    onChange={handleIncidentChange}
+                                                    className={getInputClass(incidentFormData.dateFin)}
+                                                    required={incidentFormData.etat === "Clos"}
+                                                />
+                                            </div>
+                                        </div>
+
+                                        <div className="space-y-2">
+                                            <label className="block text-sm font-semibold text-gray-700">
+                                                Observation <span className="text-gray-400">(optionnel)</span>
+                                            </label>
+                                            <textarea
+                                                name="observation"
+                                                value={incidentFormData.observation}
+                                                onChange={handleIncidentChange}
+                                                placeholder="Remarques additionnelles..."
+                                                className={getInputClass(incidentFormData.observation)}
+                                                rows="3"
+                                            ></textarea>
+                                        </div>
+
+                                        <div className="flex flex-col sm:flex-row justify-between gap-4 pt-4">
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    setIncidentFormData({
+                                                        operateur: "",
+                                                        reference: "",
+                                                        intitule: "",
+                                                        descriptif: "",
+                                                        zone: "",
+                                                        localite: "",
+                                                        communes: "",
+                                                        abonnesimpactes: "",
+                                                        typeIncident: "",
+                                                        noeudsTouches: "",
+                                                        impacts: "",
+                                                        resolution: "",
+                                                        dateDebut: "",
+                                                        dateFin: "",
+                                                        observation: "",
+                                                        etat: "",
+                                                    });
+                                                    setShowIncidentForm(false);
+                                                }}
+                                                className="px-6 py-3 rounded-lg font-semibold bg-gray-200 text-gray-700 hover:bg-gray-300 transition-all duration-300 hover:shadow-lg"
+                                            >
+                                                🔄 Annuler
+                                            </button>
+                                            <button
+                                                type="submit"
+                                                className="px-8 py-3 rounded-lg font-semibold bg-gradient-to-r from-orange-500 to-orange-600 text-white hover:from-orange-600 hover:to-orange-700 transition-all duration-300 hover:shadow-xl transform hover:scale-105"
+                                            >
+                                                ✅ Soumettre l'incident
+                                            </button>
+                                        </div>
+                                    </form>
+                                </div>
+                            )}
+
+                            {/* ✅ FORMULAIRE CRÉATION UTILISATEUR (affiché conditionnellement) */}
+                            {showUserForm && ["SUP_AD0", "SUPER_1"].includes(userProfil) && (
+                                <div className="bg-white rounded-xl shadow-2xl p-8 mb-8 border-2 border-green-500">
+                                    <div className="flex justify-between items-center mb-6">
+                                        <h2 className="text-2xl font-bold text-green-600">👤 Créer un utilisateur</h2>
+                                        <button
+                                            onClick={() => setShowUserForm(false)}
+                                            className="p-2 hover:bg-gray-100 rounded-full transition"
+                                        >
+                                            <FaClose size={24} className="text-gray-600" />
+                                        </button>
+                                    </div>
+
+                                    <form onSubmit={handleUserSubmit} className="space-y-4">
+                                        <div>
+                                            <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                                Nom complet <span className="text-red-500">*</span>
+                                            </label>
+                                            <input
+                                                type="text"
+                                                name="nom_user"
+                                                value={userFormData.nom_user}
+                                                onChange={handleUserChange}
+                                                placeholder="Ex: Jean Dupont"
+                                                className={getInputClass(userFormData.nom_user)}
+                                                required
+                                            />
+                                        </div>
+
+                                        <div>
+                                            <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                                Email <span className="text-red-500">*</span>
+                                            </label>
+                                            <input
+                                                type="email"
+                                                name="email"
+                                                value={userFormData.email}
+                                                onChange={handleUserChange}
+                                                placeholder="Ex: jean.dupont@artci.ci"
+                                                className={getInputClass(userFormData.email)}
+                                                required
+                                            />
+                                        </div>
+
+                                        <div>
+                                            <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                                Mot de passe <span className="text-red-500">*</span>
+                                            </label>
+                                            <input
+                                                type="password"
+                                                name="password"
+                                                value={userFormData.password}
+                                                onChange={handleUserChange}
+                                                placeholder="Minimum 8 caractères"
+                                                className={getInputClass(userFormData.password)}
+                                                minLength="8"
+                                                required
+                                            />
+                                        </div>
+
+                                        <div>
+                                            <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                                Profil <span className="text-red-500">*</span>
+                                            </label>
+                                            <select
+                                                name="id_Profil"
+                                                value={userFormData.id_Profil}
+                                                onChange={handleUserChange}
+                                                className={getInputClass(userFormData.id_Profil)}
+                                                required
+                                            >
+                                                <option value="">Sélectionner un profil</option>
+                                                {userProfil === "SUP_AD0" && (
+                                                    <>
+                                                        <option value="SUP_AD0">Super Admin</option>
+                                                        <option value="SUPER_1">Superviseur Principal</option>
+                                                        <option value="SUPER_2">Superviseur</option>
+                                                        <option value="USER_3">Utilisateur</option>
+                                                    </>
+                                                )}
+                                                {userProfil === "SUPER_1" && (
+                                                    <>
+                                                        <option value="SUPER_2">Superviseur</option>
+                                                        <option value="USER_3">Utilisateur</option>
+                                                    </>
+                                                )}
+                                            </select>
+                                            <p className="text-xs text-gray-500 mt-1">
+                                                {userProfil === "SUP_AD0" && "Vous pouvez créer tous les types d'utilisateurs"}
+                                                {userProfil === "SUPER_1" && "Vous pouvez créer des Superviseurs et Utilisateurs"}
+                                            </p>
+                                        </div>
+
+                                        <div className="flex gap-4 pt-4">
+                                            <button
+                                                type="button"
+                                                onClick={() => setShowUserForm(false)}
+                                                className="flex-1 px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition font-semibold"
+                                            >
+                                                Annuler
+                                            </button>
+                                            <button
+                                                type="submit"
+                                                className="flex-1 px-6 py-3 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg hover:shadow-xl transition font-semibold"
+                                            >
+                                                ✅ Créer l'utilisateur
+                                            </button>
+                                        </div>
+                                    </form>
+                                </div>
+                            )}
 
                             {/* Derniers incidents */}
                             <div className="bg-white rounded-xl shadow-lg p-6">

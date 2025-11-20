@@ -11,6 +11,12 @@ export default function IncidentsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [userProfil, setUserProfil] = useState(null);
+  const [userId, setUserId] = useState(null);
+  
+  // ✅ État pour le modal d'édition
+  const [editingIncident, setEditingIncident] = useState(null);
+  const [editFormData, setEditFormData] = useState({});
+  
   const [filter, setFilter] = useState({
     operateur: "",
     typeIncident: "",
@@ -28,10 +34,9 @@ export default function IncidentsPage() {
     try {
       setLoading(true);
       
-      // ✅ CORRECTION : Utiliser credentials: "include" pour envoyer le cookie
       const response = await fetch('/api/enregistrement', {
         method: "GET",
-        credentials: "include",  // ✅ Envoie automatiquement le cookie
+        credentials: "include",
       });
       
       const data = await response.json();
@@ -52,6 +57,15 @@ export default function IncidentsPage() {
       if (data.success) {
         setIncidents(data.data);
         setUserProfil(data.userProfil);
+        
+        // ✅ Récupérer l'ID utilisateur
+        const userResponse = await fetch("/api/user/me", {
+          method: "GET",
+          credentials: "include"
+        });
+        const userData = await userResponse.json();
+        setUserId(userData.id_user);
+        
         console.log("✅ Incidents chargés:", data.total, "| Profil:", data.userProfil);
       } else {
         setError(data.message);
@@ -64,7 +78,112 @@ export default function IncidentsPage() {
     }
   };
 
-  // ✅ Fonction d'exportation en Excel
+  // ✅ Fonction pour ouvrir le modal d'édition
+  const openEditModal = (incident) => {
+    setEditingIncident(incident);
+    setEditFormData({
+      operateur: incident.operateur,
+      reference: incident.reference || "",
+      intitule: incident.intitule,
+      descriptif: incident.descriptif,
+      zone: incident.zone,
+      localite: incident.localite,
+      communes: incident.communes,
+      abonnesimpactes: incident.abonnesimpactes,
+      typeIncident: incident.typeIncident,
+      noeudsTouches: incident.noeudsTouches,
+      impacts: incident.impacts,
+      resolution: incident.resolution,
+      dateDebut: incident.dateDebut ? new Date(incident.dateDebut).toISOString().slice(0, 16) : "",
+      dateFin: incident.dateFin ? new Date(incident.dateFin).toISOString().slice(0, 16) : "",
+      observation: incident.observation || "",
+      etat: incident.etat,
+    });
+  };
+
+  // ✅ Fonction pour fermer le modal
+  const closeEditModal = () => {
+    setEditingIncident(null);
+    setEditFormData({});
+  };
+
+  // ✅ Gestion du changement dans le formulaire d'édition
+  const handleEditChange = (e) => {
+    setEditFormData({
+      ...editFormData,
+      [e.target.name]: e.target.value
+    });
+  };
+
+  // ✅ Fonction pour soumettre la modification
+  const handleEditSubmit = async (e) => {
+    e.preventDefault();
+    
+    try {
+      const response = await fetch(`/api/incidents/${editingIncident.id_formulaire}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        credentials: "include",
+        body: JSON.stringify(editFormData)
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Erreur lors de la modification");
+      }
+
+      alert("✅ Incident modifié avec succès !");
+      closeEditModal();
+      fetchIncidents(); // Recharger les incidents
+
+    } catch (err) {
+      console.error("❌ Erreur modification:", err);
+      alert(`Erreur: ${err.message}`);
+    }
+  };
+
+  // ✅ Fonction pour supprimer un incident (admins uniquement)
+  const handleDelete = async (id) => {
+    if (!confirm("⚠️ Êtes-vous sûr de vouloir supprimer cet incident ? Cette action est irréversible.")) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/incidents/${id}`, {
+        method: "DELETE",
+        credentials: "include"
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Erreur lors de la suppression");
+      }
+
+      alert("✅ Incident supprimé avec succès !");
+      fetchIncidents(); // Recharger les incidents
+
+    } catch (err) {
+      console.error("❌ Erreur suppression:", err);
+      alert(`Erreur: ${err.message}`);
+    }
+  };
+
+  // ✅ Vérifier si l'utilisateur peut modifier cet incident
+  const canEdit = (incident) => {
+    const isAdmin = ["SUP_AD0", "SUPER_1", "SUPER_2"].includes(userProfil);
+    const isOwner = incident.id_user === userId;
+    return isAdmin || isOwner;
+  };
+
+  // ✅ Vérifier si l'utilisateur peut supprimer (admins uniquement)
+  const canDelete = () => {
+    return ["SUP_AD0", "SUPER_1", "SUPER_2"].includes(userProfil);
+  };
+
   const exportToExcel = () => {
     try {
       if (!filteredIncidents || filteredIncidents.length === 0) {
@@ -72,7 +191,6 @@ export default function IncidentsPage() {
         return;
       }
 
-      // Préparer les données pour l'export
       const dataToExport = filteredIncidents.map(incident => ({
         'Référence': incident.reference || 'N/A',
         'Opérateur': incident.operateur,
@@ -99,7 +217,6 @@ export default function IncidentsPage() {
       const workbook = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(workbook, worksheet, "Incidents");
 
-      // Génération du fichier Excel
       const excelBuffer = XLSX.write(workbook, {
         bookType: "xlsx",
         type: "array",
@@ -119,7 +236,6 @@ export default function IncidentsPage() {
     }
   };
 
-  // ✅ CORRECTION : Fonction de déconnexion avec cookies
   const handleLogout = async () => {
     try {
       await fetch("/api/auth/logout", {
@@ -128,7 +244,7 @@ export default function IncidentsPage() {
       });
       console.log("✅ Déconnexion réussie");
     } catch (error) {
-      console.error("❌ Erreur lors de la déconnexion:", error);
+      console.error("❌ Erreur déconnexion:", error);
     } finally {
       router.push("/login_register");
     }
@@ -162,6 +278,14 @@ export default function IncidentsPage() {
     return badges[type] || 'bg-gray-100 text-gray-800';
   };
 
+  const getInputClass = (value) => {
+    const baseClass = "w-full border-2 p-3 rounded-lg transition-all duration-300 focus:outline-none focus:ring-2";
+    if (value) {
+      return `${baseClass} border-green-400 bg-green-50 focus:border-green-500 focus:ring-green-200`;
+    }
+    return `${baseClass} border-gray-300 focus:border-orange-500 focus:ring-orange-200`;
+  };
+
   const filteredIncidents = incidents.filter(incident => {
     const matchOperateur = !filter.operateur || incident.operateur === filter.operateur;
     const matchType = !filter.typeIncident || incident.typeIncident === filter.typeIncident;
@@ -170,7 +294,6 @@ export default function IncidentsPage() {
       incident.reference?.toLowerCase().includes(filter.searchTerm.toLowerCase()) ||
       incident.intitule?.toLowerCase().includes(filter.searchTerm.toLowerCase());
 
-    // Filtre par date
     let matchDate = true;
     if (filter.dateDebut || filter.dateFin) {
       const incidentDate = new Date(incident.dateDebut || incident.dateNotification);
@@ -214,14 +337,12 @@ export default function IncidentsPage() {
               Déclarer un incident
             </Link>
             
-            {/* 👇 Lien visible uniquement pour SUPER_1 et SUP_AD0 */}
             {["SUP_AD0", "SUPER_1"].includes(userProfil) && (
               <Link href="/register" className="text-gray-700 hover:text-orange-600 font-semibold transition">
                 Créer un utilisateur
               </Link>
             )}
             
-            {/* ✅ CORRECTION : Utiliser la fonction handleLogout */}
             <button
               onClick={handleLogout}
               className="text-gray-700 hover:text-orange-600 font-semibold transition"
@@ -383,20 +504,39 @@ export default function IncidentsPage() {
                         </span>
                       </div>
                       <h3 className="text-xl font-semibold text-gray-800">{incident.intitule}</h3>
-                      {/* Afficher le créateur si admin */}
                       {["SUP_AD0", "SUPER_1", "SUPER_2"].includes(userProfil) && incident.user && (
                         <p className="text-sm text-gray-600 mt-1">
                           👤 Créé par: <span className="font-semibold">{incident.user.nom_user}</span> ({incident.user.email})
                         </p>
                       )}
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 flex-wrap items-center">
                       <span className="px-3 py-1 bg-orange-100 text-orange-800 rounded-full text-sm font-semibold">
                         {incident.operateur}
                       </span>
                       <span className={`px-3 py-1 rounded-full text-sm font-semibold ${getTypeBadge(incident.typeIncident)}`}>
                         {incident.typeIncident}
                       </span>
+                      
+                      {/* ✅ Boutons Modifier/Supprimer */}
+                      <div className="flex gap-2">
+                        {canEdit(incident) && (
+                          <button
+                            onClick={() => openEditModal(incident)}
+                            className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition text-sm font-semibold"
+                          >
+                            ✏️ Modifier
+                          </button>
+                        )}
+                        {canDelete() && (
+                          <button
+                            onClick={() => handleDelete(incident.id_formulaire)}
+                            className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition text-sm font-semibold"
+                          >
+                            🗑️ Supprimer
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </div>
 
@@ -478,6 +618,287 @@ export default function IncidentsPage() {
           © 2025 ARTCI - Tous droits réservés
         </div>
       </footer>
+
+      {/* ✅ MODAL D'ÉDITION */}
+      {editingIncident && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="sticky top-0 bg-white border-b-2 border-orange-500 p-6 flex justify-between items-center">
+              <h2 className="text-2xl font-bold text-orange-600">✏️ Modifier l'incident</h2>
+              <button
+                onClick={closeEditModal}
+                className="p-2 hover:bg-gray-100 rounded-full transition"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <form onSubmit={handleEditSubmit} className="p-6 space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    Opérateur <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    name="operateur"
+                    value={editFormData.operateur}
+                    onChange={handleEditChange}
+                    className={getInputClass(editFormData.operateur)}
+                    required
+                  >
+                    <option value="">Sélectionner</option>
+                    <option value="MOOV">MOOV CI</option>
+                    <option value="MTN">MTN CI</option>
+                    <option value="Orange_CI">ORANGE CI</option>
+                    <option value="VIPNET">VIPNET</option>
+                    <option value="AWALE">AWALE</option>
+                    <option value="GVA">GVA</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    Référence
+                  </label>
+                  <input
+                    type="text"
+                    name="reference"
+                    value={editFormData.reference}
+                    onChange={handleEditChange}
+                    className={getInputClass(editFormData.reference)}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Intitulé <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  name="intitule"
+                  value={editFormData.intitule}
+                  onChange={handleEditChange}
+                  className={getInputClass(editFormData.intitule)}
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Descriptif <span className="text-red-500">*</span>
+                </label>
+                <textarea
+                  name="descriptif"
+                  value={editFormData.descriptif}
+                  onChange={handleEditChange}
+                  className={getInputClass(editFormData.descriptif)}
+                  rows="3"
+                  required
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    Zone <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    name="zone"
+                    value={editFormData.zone}
+                    onChange={handleEditChange}
+                    className={getInputClass(editFormData.zone)}
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    Localité <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    name="localite"
+                    value={editFormData.localite}
+                    onChange={handleEditChange}
+                    className={getInputClass(editFormData.localite)}
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    Communes <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    name="communes"
+                    value={editFormData.communes}
+                    onChange={handleEditChange}
+                    className={getInputClass(editFormData.communes)}
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    Abonnés impactés <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="number"
+                    name="abonnesimpactes"
+                    value={editFormData.abonnesimpactes}
+                    onChange={handleEditChange}
+                    className={getInputClass(editFormData.abonnesimpactes)}
+                    min="0"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    Nœuds touchés <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="number"
+                    name="noeudsTouches"
+                    value={editFormData.noeudsTouches}
+                    onChange={handleEditChange}
+                    className={getInputClass(editFormData.noeudsTouches)}
+                    min="0"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Type <span className="text-red-500">*</span>
+                </label>
+                <select
+                  name="typeIncident"
+                  value={editFormData.typeIncident}
+                  onChange={handleEditChange}
+                  className={getInputClass(editFormData.typeIncident)}
+                  required
+                >
+                  <option value="">Sélectionner</option>
+                  <option value="CRITIQUE">CRITIQUE</option>
+                  <option value="MAJEUR">MAJEUR</option>
+                  <option value="MINEUR">MINEUR</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Impacts <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  name="impacts"
+                  value={editFormData.impacts}
+                  onChange={handleEditChange}
+                  className={getInputClass(editFormData.impacts)}
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Actions de résolution <span className="text-red-500">*</span>
+                </label>
+                <textarea
+                  name="resolution"
+                  value={editFormData.resolution}
+                  onChange={handleEditChange}
+                  className={getInputClass(editFormData.resolution)}
+                  rows="2"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  État <span className="text-red-500">*</span>
+                </label>
+                <select
+                  name="etat"
+                  value={editFormData.etat}
+                  onChange={handleEditChange}
+                  className={getInputClass(editFormData.etat)}
+                  required
+                >
+                  <option value="">Sélectionner</option>
+                  <option value="Clos">Clos</option>
+                  <option value="Non clos">Non clos</option>
+                </select>
+              </div>
+
+              {editFormData.etat === "Clos" && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      Date début <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="datetime-local"
+                      name="dateDebut"
+                      value={editFormData.dateDebut}
+                      onChange={handleEditChange}
+                      className={getInputClass(editFormData.dateDebut)}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      Date fin <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="datetime-local"
+                      name="dateFin"
+                      value={editFormData.dateFin}
+                      onChange={handleEditChange}
+                      className={getInputClass(editFormData.dateFin)}
+                      required
+                    />
+                  </div>
+                </div>
+              )}
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Observation
+                </label>
+                <textarea
+                  name="observation"
+                  value={editFormData.observation}
+                  onChange={handleEditChange}
+                  className={getInputClass(editFormData.observation)}
+                  rows="2"
+                />
+              </div>
+
+              <div className="flex gap-4 pt-4 sticky bottom-0 bg-white border-t-2 border-gray-200 -mx-6 px-6 -mb-6 pb-6">
+                <button
+                  type="button"
+                  onClick={closeEditModal}
+                  className="flex-1 px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition font-semibold"
+                >
+                  Annuler
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg hover:shadow-xl transition font-semibold"
+                >
+                  ✅ Enregistrer les modifications
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

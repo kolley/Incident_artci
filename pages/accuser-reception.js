@@ -37,7 +37,7 @@ export default function AccuseReception() {
         <nav className="flex items-center justify-between p-6 lg:px-8 max-w-7xl mx-auto">
           <div className="flex lg:flex-1">
             <Link href="/" className="flex items-center">
-            <img src="/images/ARTCI-2_img.png" alt="Logo ARTCI" className="h-16 w-auto object-contain" />
+            <img src="/images/logo-white.png" alt="Logo ARTCI" className="h-16 w-auto object-contain" />
           </Link>
           </div>
           <div className="hidden lg:flex lg:gap-x-12">

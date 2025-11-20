@@ -11,7 +11,7 @@ export default function Home() {
           <div className="bg-white-800 flex lg:flex-1">
             <Link href="/" className="-m-1.5 p-1.5">
               <span className="sr-only">Accueil</span>
-                <img src="/images/ARTCI-2_img.png" alt="Logo ARTCI" className="h-16 w-auto object-contain" />            </Link>
+                <img src="/images/logo-white.png" alt="Logo ARTCI" className="h-16 w-auto object-contain" />            </Link>
           </div>
           <div className="hidden lg:flex lg:gap-x-12">
             <Link href="#" className="text-lg font-semibold text-white">Accueil</Link>
