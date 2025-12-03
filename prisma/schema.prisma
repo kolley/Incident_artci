@@ -1,9 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -13,34 +7,66 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// Table des profil
+/* ===========================
+   TABLE : OPERATEUR
+   =========================== */
+model Operateur {
+  id_operateur   Int           @id 
+  nom_operateur  String        @unique   // ⚠️ modifié
+  description    String?
+  users          User[]
+  formulaires    Formulaire[]
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+}
+
+
+
+/* ===========================
+   TABLE : PROFIL
+   =========================== */
 model Profil {
-  id_Profil    String     @id 
+  id_Profil    String     @id
   nom_profil   String
   description  String?
-  users        User[]  // relation inverse
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  users        User[]
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
 }
 
+/* ===========================
+   TABLE : USER
+   =========================== */
 model User {
-  id_user       Int           @id @default(autoincrement())
-  email         String        @unique
-  password      String
-  nom_user      String
-  id_Profil     String?          
-  nom_profil        Profil?       @relation(fields: [id_Profil], references: [id_Profil])
-  formulaires   Formulaire[]  
-  notifications Notification[]
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
+  id_user         Int         @id @default(autoincrement())
+  email           String      @unique
+  password        String
+  nom_user        String
+  id_operateur    Int?
+  nom_operateur   Operateur?  @relation(fields: [id_operateur], references: [id_operateur])
+  id_Profil       String?
+  nom_profil      Profil?     @relation(fields: [id_Profil], references: [id_Profil])
+  formulaires     Formulaire[]
+  notifications   Notification[]
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
 }
 
+/* ===========================
+   TABLE : FORMULAIRE
+   =========================== */
 model Formulaire {
-  id_formulaire   Int      @id @default(autoincrement())
+  id_formulaire   Int          @id @default(autoincrement())
   id_user         Int
-  user            User     @relation(fields: [id_user], references: [id_user])
-  operateur       String
+  user            User         @relation(fields: [id_user], references: [id_user])
+
+  id_operateur    Int
+  operateur       Operateur    @relation(fields: [id_operateur], references: [id_operateur]) // ⚠️ conserve le nom mais référence le bon champ
+
+  typeIncident_infrastructure   String
+  typeIncident_zone  String
+  typeIncident_abonne  String
+
   reference       String?
   intitule        String
   descriptif      String
@@ -48,19 +74,23 @@ model Formulaire {
   localite        String
   communes        String
   abonnesimpactes Int
-  typeIncident    String
   noeudsTouches   Int
   impacts         String
   resolution      String
+
   dateNotification DateTime
-  dateDebut       DateTime?
-  dateFin         DateTime?
-  observation     String?
-  etat            String
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  dateDebut        DateTime?
+  dateFin          DateTime?
+  observation      String?
+
+  etat             String
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
 }
 
+/* ===========================
+   TABLE : NOTIFICATION
+   =========================== */
 model Notification {
   id_notification Int      @id @default(autoincrement())
   id_user         Int
@@ -70,4 +100,3 @@ model Notification {
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 }
-

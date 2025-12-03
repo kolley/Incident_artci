@@ -16,7 +16,7 @@ export default function Home() {
           <div className="hidden lg:flex lg:gap-x-12">
             <Link href="#" className="text-lg font-semibold text-white">Accueil</Link>
             <Link href="https://www.artci.ci/" className="text-lg font-semibold text-white">A propos</Link>
-            <Link href="/images/DECISI~1_INCIDENT.PDF" className="text-lg font-semibold text-white">Arreté d'incident</Link>
+            <Link href="/images/DECISI~1_INCIDENT.PDF" className="text-lg font-semibold text-white">décision</Link>
           </div>
           <div className="hidden lg:flex lg:flex-1 lg:justify-end">
             <Link href="/login_register" className="text-lg font-semibold text-white">

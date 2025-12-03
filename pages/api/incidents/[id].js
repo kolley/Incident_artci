@@ -1,4 +1,5 @@
-// pages/api/incidents/update-incident.js
+// modification incident API
+//pages/api/incidents/[id].js
 import prisma from "../../../service/config/prisma";
 import { verifyToken } from "../../../service/middleware/auth";
 

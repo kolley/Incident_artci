@@ -8,6 +8,12 @@ export default function AccuseReception() {
   const [dateIncident, setDateIncident] = useState('');
   const [showSuccess, setShowSuccess] = useState(false);
 
+
+
+
+
+  
+
   const operateurs = [
     { id: 'moov', name: 'Moov Africa', logo: '📱', color: 'bg-blue-600' },
     { id: 'orange', name: 'Orange CI', logo: '🍊', color: 'bg-orange-600' },
@@ -37,11 +43,14 @@ export default function AccuseReception() {
         <nav className="flex items-center justify-between p-6 lg:px-8 max-w-7xl mx-auto">
           <div className="flex lg:flex-1">
             <Link href="/" className="flex items-center">
-            <img src="/images/logo-white.png" alt="Logo ARTCI" className="h-16 w-auto object-contain" />
+            <img src="/images/ARTCI-2_img.png" alt="Logo ARTCI" className="h-16 w-auto object-contain" />
           </Link>
           </div>
           <div className="hidden lg:flex lg:gap-x-12">
             <a href="/" className="text-lg font-semibold text-orange-600 hover:text-orange-700">Accueil</a>
+          </div>
+          <div className="hidden lg:flex lg:gap-x-12">
+            <a href="/dashboard" className="text-lg font-semibold text-orange-600 hover:text-orange-700">Dashboard</a>
           </div>
           <div className="hidden lg:flex lg:flex-1 lg:justify-end">
             <a href="/login_register" className="text-lg font-semibold text-orange-600 hover:text-orange-700">

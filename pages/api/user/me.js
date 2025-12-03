@@ -37,21 +37,28 @@ export default async function handler(req, res) {
 
         // ✅ Récupérer l'utilisateur avec son profil complet
         const user = await prisma.user.findUnique({
-            where: { id_user },
+    where: { id_user },
+    select: {
+        id_user: true,
+        nom_user: true,
+        email: true,
+        id_Profil: true,
+        nom_profil: {
             select: {
-                id_user: true,
-                nom_user: true,
-                email: true,
                 id_Profil: true,
-                nom_profil: {
-                    select: {
-                        id_Profil: true,
-                        nom_profil: true,
-                        description: true
-                    }
-                }
+                nom_profil: true,
+                description: true
             }
-        });
+        },
+        nom_operateur: {   
+            select: {
+                id_operateur: true,
+                nom_operateur: true
+            }
+        }
+    }
+});
+
 
         if (!user) {
             console.log("❌ [user/me] Utilisateur non trouvé pour ID:", id_user);
@@ -67,8 +74,12 @@ export default async function handler(req, res) {
             email: user.email,
             profil: user.id_Profil,
             profilNom: user.nom_profil?.nom_profil || null,
-            profilDescription: user.nom_profil?.description || null
-        });
+            profilDescription: user.nom_profil?.description || null,
+            operateur: user.nom_operateur ? {
+                id_operateur: user.nom_operateur.id_operateur,
+                nom_operateur: user.nom_operateur.nom_operateur
+            } : null       
+    });
 
     } catch (error) {
         console.error("❌ [user/me] Erreur:", error.message);

@@ -26,6 +26,7 @@ export default function Dashboard() {
     // ✅ Nouveau state pour gérer l'affichage des formulaires
     const [showIncidentForm, setShowIncidentForm] = useState(false);
     const [showUserForm, setShowUserForm] = useState(false);
+    const [userOperateur, setUserOperateur] = useState(null);
 
     const [stats, setStats] = useState({
         totalIncidents: 0,
@@ -35,8 +36,13 @@ export default function Dashboard() {
     });
 
     // État du formulaire d'incident
+    // ✅ Modifier le state initial pour inclure l'opérateur
     const [incidentFormData, setIncidentFormData] = useState({
-        operateur: "",
+        id_operateur: null,        // ✅ NOUVEAU
+        nom_operateur: "",         // ✅ NOUVEAU
+        typeIncident_infrastructure: "",
+        typeIncident_zone: "",
+        typeIncident_abonne: "",
         reference: "",
         intitule: "",
         descriptif: "",
@@ -44,7 +50,6 @@ export default function Dashboard() {
         localite: "",
         communes: "",
         abonnesimpactes: "",
-        typeIncident: "",
         noeudsTouches: "",
         impacts: "",
         resolution: "",
@@ -59,39 +64,71 @@ export default function Dashboard() {
         nom_user: "",
         email: "",
         password: "",
-        id_Profil: ""
+        id_Profil: "",
+        id_operateur: ""   // ✅ AJOUT
     });
+    const [operateurs, setOperateurs] = useState([]);
 
-    useEffect(() => {
-        const verifyUser = async () => {
-            try {
-                const res = await fetch("/api/user/me", {
-                    method: "GET",
-                    credentials: "include"
-                });
+   
 
-                if (!res.ok) {
-                    console.log("❌ Utilisateur non authentifié");
-                    router.push("/login_register");
-                    return;
-                }
+   // ⬇️ Ajouter la fonction ici
+const fetchStats = async () => {
+    try {
+        const res = await fetch("/api/dashboard/stats");
+        if (!res.ok) {
+            console.log("❌ Erreur récupération statistiques");
+            return;
+        }
 
-                const data = await res.json();
-                console.log("✅ Utilisateur récupéré:", data.nom, "- Profil:", data.profil);
+        const data = await res.json();
+        console.log("📊 Stats récupérées :", data);
+        setStats(data);
+    } catch (error) {
+        console.error("❌ Erreur fetchStats():", error);
+    }
+};
 
-                setUserProfil(data.profil);
-                setUserName(data.nom);
-                fetchStats();
+useEffect(() => {
+    const verifyUser = async () => {
+        try {
+            const res = await fetch("/api/user/me", {
+                method: "GET",
+                credentials: "include"
+            });
 
-            } catch (error) {
-                console.error("❌ Erreur verifyUser:", error);
+            if (!res.ok) {
+                console.log("❌ Utilisateur non authentifié");
                 router.push("/login_register");
+                return;
             }
-        };
 
-        verifyUser();
-    }, [router]);
+            const data = await res.json();
+            console.log("✅ Utilisateur récupéré:", data.nom, "- Profil:", data.profil);
 
+            setUserProfil(data.profil);
+            setUserName(data.nom);
+            setUserOperateur(data.operateur);
+
+            // 🔹 Charger les stats
+            await fetchStats();
+
+            // 🔹 Charger les opérateurs
+            const opRes = await fetch("/api/user/operateur");
+            if (opRes.ok) {
+                const opData = await opRes.json();
+                console.log("📦 Operateurs récupérés :", opData);
+                setOperateurs(opData);
+            }
+
+        } catch (error) {
+            console.error("❌ Erreur verifyUser:", error);
+        }
+    };
+
+    verifyUser();
+}, [router]);
+
+/*
     const fetchStats = async () => {
         try {
             const res = await fetch("/api/dashboard/stats", {
@@ -111,7 +148,7 @@ export default function Dashboard() {
         } catch (error) {
             console.error("❌ Erreur fetchStats:", error);
         }
-    };
+    };*/
 
     const handleLogout = async () => {
         try {
@@ -161,7 +198,8 @@ export default function Dashboard() {
 
             // Réinitialiser et fermer
             setIncidentFormData({
-                operateur: "",
+                id_operateur: userOperateur?.id_operateur || "",
+                nom_operateur: userOperateur?.nom_operateur || "",
                 reference: "",
                 intitule: "",
                 descriptif: "",
@@ -169,7 +207,9 @@ export default function Dashboard() {
                 localite: "",
                 communes: "",
                 abonnesimpactes: "",
-                typeIncident: "",
+                typeIncident_abonne: "",
+                typeIncident_infrastructure: "",
+                typeIncident_zone: "",
                 noeudsTouches: "",
                 impacts: "",
                 resolution: "",
@@ -219,7 +259,8 @@ export default function Dashboard() {
                 nom_user: "",
                 email: "",
                 password: "",
-                id_Profil: ""
+                id_Profil: "",
+                id_operateur: ""  
             });
             setShowUserForm(false);
 
@@ -234,7 +275,8 @@ export default function Dashboard() {
             "SUP_AD0": "Super Admin",
             "SUPER_1": "Superviseur Principal",
             "SUPER_2": "Superviseur",
-            "USER_3": "Utilisateur"
+            "USER_3": "Utilisateur",
+            "USER_4": "utilisateur ARTCI"
         };
         return labels[profil] || profil;
     };
@@ -244,11 +286,24 @@ export default function Dashboard() {
             "SUP_AD0": "bg-red-100 text-red-800",
             "SUPER_1": "bg-purple-100 text-purple-800",
             "SUPER_2": "bg-blue-100 text-blue-800",
-            "USER_3": "bg-green-100 text-green-800"
+            "USER_3": "bg-green-100 text-green-800",
+            "USER_4": "bg-gray-100 text-gray-800"
         };
         return colors[profil] || "bg-gray-100 text-gray-800";
     };
 
+    const getOperateurLabel = (operateur) => {
+        if (!operateur) return "";
+
+        // Si c'est un objet : { id_operateur: 1, nom_operateur: "ORANGE CI" }
+        if (typeof operateur === "object") {
+            return operateur.nom_operateur || "";
+        }
+
+        // Si c'est un id : 1, 2, 3...
+        const op = operateurs.find(o => o.id_operateur === Number(operateur));
+        return op ? op.nom_operateur : "";
+    };
     const getInputClass = (value) => {
         const baseClass = "w-full border-2 p-3 rounded-lg transition-all duration-300 focus:outline-none focus:ring-2";
         if (value) {
@@ -262,19 +317,19 @@ export default function Dashboard() {
             name: "Tableau de bord",
             icon: FaChartBar,
             path: "stats",
-            roles: ["SUP_AD0", "SUPER_1", "SUPER_2", "USER_3"]
+            roles: ["SUP_AD0", "SUPER_1", "SUPER_2", "USER_3", "USER_4"]
         },
         {
             name: "Déclarer un incident",
             icon: FaFileAlt,
             path: "/formulaire",
-            roles: ["SUP_AD0", "SUPER_1", "SUPER_2", "USER_3"]
+            roles: ["SUP_AD0", "USER_3",]
         },
         {
             name: "Voir les incidents",
             icon: FaListAlt,
             path: "/enregistrement",
-            roles: ["SUP_AD0", "SUPER_1", "SUPER_2", "USER_3"]
+            roles: ["SUP_AD0", "SUPER_1", "SUPER_2", "USER_3", "USER_4"]
         },
         {
             name: "Créer un utilisateur",
@@ -318,7 +373,7 @@ export default function Dashboard() {
                 <div className="p-4 flex items-center justify-between border-b border-orange-500">
                     {sidebarOpen && (
                         <div className="flex items-center gap-3">
-                            <img src="/images/ARTCI-2_img.png" alt="Logo" className="h-10 w-auto" />
+                            <img src="/images/logo-white.png" alt="Logo" className="h-10 w-auto" />
                         </div>
                     )}
                     <button
@@ -361,8 +416,8 @@ export default function Dashboard() {
                                     }
                                 }}
                                 className={`w-full flex items-center gap-3 p-3 rounded-lg transition-all ${isActive
-                                        ? 'bg-white text-orange-600 shadow-lg'
-                                        : 'hover:bg-orange-500'
+                                    ? 'bg-white text-orange-600 shadow-lg'
+                                    : 'hover:bg-orange-500'
                                     }`}
                             >
                                 <Icon size={20} />
@@ -394,7 +449,7 @@ export default function Dashboard() {
                                 {activeTab === "settings" && "Paramètres"}
                             </h1>
                             <p className="text-gray-600 mt-1">
-                                Bienvenue, {getProfilLabel(userProfil)}
+                                Bienvenue, {getProfilLabel(userProfil)}  {getOperateurLabel(userOperateur)}
                             </p>
                         </div>
                         <div className="flex items-center gap-4">
@@ -411,10 +466,14 @@ export default function Dashboard() {
                         <div>
                             {/* Stats Cards */}
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+
+                                {/* TOTAL INCIDENTS */}
                                 <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-blue-500">
                                     <div className="flex justify-between items-start">
                                         <div>
-                                            <p className="text-gray-600 text-sm font-semibold">Total Incidents</p>
+                                            <p className="text-gray-600 text-sm font-semibold">
+                                                {userProfil === "USER_3" ? "Mes Incidents" : "Total Incidents"}
+                                            </p>
                                             <p className="text-3xl font-bold text-gray-800 mt-2">{stats.totalIncidents}</p>
                                         </div>
                                         <div className="p-3 bg-blue-100 rounded-lg">
@@ -422,11 +481,13 @@ export default function Dashboard() {
                                         </div>
                                     </div>
                                 </div>
-
+                                {/* INCIDENTS CLOS */}
                                 <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-green-500">
                                     <div className="flex justify-between items-start">
                                         <div>
-                                            <p className="text-gray-600 text-sm font-semibold">Incidents Clos</p>
+                                            <p className="text-gray-600 text-sm font-semibold">
+                                                {userProfil === "USER_3" ? "Mes Incidents Clos" : "Incidents Clos"}
+                                            </p>
                                             <p className="text-3xl font-bold text-gray-800 mt-2">{stats.incidentsClos}</p>
                                         </div>
                                         <div className="p-3 bg-green-100 rounded-lg">
@@ -435,10 +496,13 @@ export default function Dashboard() {
                                     </div>
                                 </div>
 
+                                {/* INCIDENTS EN COURS */}
                                 <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-red-500">
                                     <div className="flex justify-between items-start">
                                         <div>
-                                            <p className="text-gray-600 text-sm font-semibold">En Cours</p>
+                                            <p className="text-gray-600 text-sm font-semibold">
+                                                {userProfil === "USER_3" ? "Mes Incidents en Cours" : "Incidents en Cours"}
+                                            </p>
                                             <p className="text-3xl font-bold text-gray-800 mt-2">{stats.incidentsEnCours}</p>
                                         </div>
                                         <div className="p-3 bg-red-100 rounded-lg">
@@ -446,26 +510,13 @@ export default function Dashboard() {
                                         </div>
                                     </div>
                                 </div>
-
-                                {userProfil === "USER_3" && (
-                                    <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-orange-500">
-                                        <div className="flex justify-between items-start">
-                                            <div>
-                                                <p className="text-gray-600 text-sm font-semibold">Mes Incidents</p>
-                                                <p className="text-3xl font-bold text-gray-800 mt-2">{stats.mesIncidents}</p>
-                                            </div>
-                                            <div className="p-3 bg-orange-100 rounded-lg">
-                                                <FaFileAlt size={24} className="text-orange-600" />
-                                            </div>
-                                        </div>
-                                    </div>
-                                )}
                             </div>
 
                             {/* Actions rapides */}
                             <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
                                 <h2 className="text-xl font-bold text-gray-800 mb-4">Actions rapides</h2>
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                {["SUP_AD0", "USER_3"].includes(userProfil) && (
                                     <button
                                         onClick={() => {
                                             setShowIncidentForm(!showIncidentForm);
@@ -477,7 +528,7 @@ export default function Dashboard() {
                                         <span className="font-semibold">
                                             {showIncidentForm ? "Masquer le formulaire" : "Déclarer un incident"}
                                         </span>
-                                    </button>
+                                    </button> )}
 
                                     <button
                                         onClick={() => router.push('/enregistrement')}
@@ -504,7 +555,8 @@ export default function Dashboard() {
                                 </div>
                             </div>
 
-        {/* ✅ FORMULAIRE D'INCIDENT (affiché conditionnellement) */}
+
+                            {/* ✅ FORMULAIRE D'INCIDENT (affiché conditionnellement) */}
                             {showIncidentForm && (
                                 <div className="bg-white rounded-xl shadow-2xl p-8 mb-8 border-2 border-orange-500">
                                     <div className="flex justify-between items-center mb-6">
@@ -516,27 +568,22 @@ export default function Dashboard() {
                                             <FaClose size={24} className="text-gray-600" />
                                         </button>
                                     </div>
-                                    
+
                                     <form onSubmit={handleIncidentSubmit} className="space-y-5">
                                         <div className="space-y-2">
                                             <label className="block text-sm font-semibold text-gray-700">
                                                 Opérateur <span className="text-red-500">*</span>
                                             </label>
-                                            <select
-                                                name="operateur"
-                                                value={incidentFormData.operateur}
-                                                onChange={handleIncidentChange}
-                                                className={getInputClass(incidentFormData.operateur)}
-                                                required
-                                            >
-                                                <option value="">Sélectionner un opérateur</option>
-                                                <option value="MOOV">MOOV CI</option>
-                                                <option value="MTN">MTN CI</option>
-                                                <option value="Orange_CI">ORANGE CI</option>
-                                                <option value="VIPNET">VIPNET</option>
-                                                <option value="AWALE">AWALE</option>
-                                                <option value="GVA">GVA</option>
-                                            </select>
+                                            <input
+                                                type="text"
+                                                value={incidentFormData.nom_operateur || "Chargement..."}
+                                                className="w-full border-2 p-3 rounded-lg bg-gray-100 cursor-not-allowed"
+                                                disabled
+                                                readOnly
+                                            />
+                                            <p className="text-xs text-gray-500 mt-1">
+                                                ℹ️ Votre opérateur est automatiquement défini selon votre compte
+                                            </p>
                                         </div>
 
                                         <div className="space-y-2">
@@ -653,18 +700,77 @@ export default function Dashboard() {
                                             <label className="block text-sm font-semibold text-gray-700">
                                                 Type de l'incident <span className="text-red-500">*</span>
                                             </label>
-                                            <select
-                                                name="typeIncident"
-                                                value={incidentFormData.typeIncident}
-                                                onChange={handleIncidentChange}
-                                                className={getInputClass(incidentFormData.typeIncident)}
-                                                required
-                                            >
-                                                <option value="">Sélectionner un type</option>
-                                                <option value="CRITIQUE">CRITIQUE</option>
-                                                <option value="MAJEUR">MAJEUR</option>
-                                                <option value="MINEUR">MINEUR</option>
-                                            </select>
+
+                                            <div className="space-y-4">
+                                                {/* Type d'incident par infrastructure */}
+                                                <div className="space-y-2">
+                                                    <label className="block text-sm font-semibold text-gray-700">
+                                                        Type incident — Infrastructure <span className="text-red-500">*</span>
+                                                    </label>
+
+                                                    <div className="flex items-center gap-4">
+                                                        {["I1", "I2", "I3"].map((lvl) => (
+                                                            <label key={lvl} className="flex items-center gap-2">
+                                                                <input
+                                                                    type="radio"
+                                                                    name="typeIncident_infrastructure"
+                                                                    value={lvl}
+                                                                    checked={incidentFormData.typeIncident_infrastructure === lvl}
+                                                                    onChange={handleIncidentChange}
+                                                                    className="w-4 h-4"
+                                                                />
+                                                                <span className="text-gray-700">{lvl}</span>
+                                                            </label>
+                                                        ))}
+                                                    </div>
+                                                </div>
+
+                                                {/* Type d'incident par abonné */}
+                                                <div className="space-y-2">
+                                                    <label className="block text-sm font-semibold text-gray-700">
+                                                        Type incident — Abonné <span className="text-red-500">*</span>
+                                                    </label>
+
+                                                    <div className="flex items-center gap-4">
+                                                        {["P1", "P2", "P3"].map((lvl) => (
+                                                            <label key={lvl} className="flex items-center gap-2">
+                                                                <input
+                                                                    type="radio"
+                                                                    name="typeIncident_abonne"
+                                                                    value={lvl}
+                                                                    checked={incidentFormData.typeIncident_abonne === lvl}
+                                                                    onChange={handleIncidentChange}
+                                                                    className="w-4 h-4"
+                                                                />
+                                                                <span className="text-gray-700">{lvl}</span>
+                                                            </label>
+                                                        ))}
+                                                    </div>
+                                                </div>
+
+                                                {/* Type d'incident par zone */}
+                                                <div className="space-y-2">
+                                                    <label className="block text-sm font-semibold text-gray-700">
+                                                        Type incident — Zone <span className="text-red-500">*</span>
+                                                    </label>
+
+                                                    <div className="flex items-center gap-4">
+                                                        {["Z1", "Z2", "Z3"].map((lvl) => (
+                                                            <label key={lvl} className="flex items-center gap-2">
+                                                                <input
+                                                                    type="radio"
+                                                                    name="typeIncident_zone"
+                                                                    value={lvl}
+                                                                    checked={incidentFormData.typeIncident_zone === lvl}
+                                                                    onChange={handleIncidentChange}
+                                                                    className="w-4 h-4"
+                                                                />
+                                                                <span className="text-gray-700">{lvl}</span>
+                                                            </label>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            </div>
                                         </div>
 
                                         <div className="space-y-2">
@@ -781,7 +887,7 @@ export default function Dashboard() {
                                             <button
                                                 type="button"
                                                 onClick={() => {
-                                                    setIncidentFormData({
+                                                    setIncidentFormData((prev) => ({
                                                         operateur: "",
                                                         reference: "",
                                                         intitule: "",
@@ -790,7 +896,9 @@ export default function Dashboard() {
                                                         localite: "",
                                                         communes: "",
                                                         abonnesimpactes: "",
-                                                        typeIncident: "",
+                                                        typeIncident_infrastructure: "",
+                                                        typeIncident_abonne: "",
+                                                        typeIncident_zone: "",
                                                         noeudsTouches: "",
                                                         impacts: "",
                                                         resolution: "",
@@ -798,7 +906,9 @@ export default function Dashboard() {
                                                         dateFin: "",
                                                         observation: "",
                                                         etat: "",
-                                                    });
+                                                        id_operateur: prev.id_operateur,
+                                                        nom_operateur: prev.nom_operateur
+                                                    }));
                                                     setShowIncidentForm(false);
                                                 }}
                                                 className="px-6 py-3 rounded-lg font-semibold bg-gray-200 text-gray-700 hover:bg-gray-300 transition-all duration-300 hover:shadow-lg"
@@ -909,6 +1019,26 @@ export default function Dashboard() {
                                             </p>
                                         </div>
 
+                                        {/* 🔹 CHAMP OPÉRATEUR AVEC LABEL */}
+                                        <div>
+                                            <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                                Opérateur <span className="text-red-500">*</span>
+                                            </label>
+                                            <select
+                                                name="id_operateur"
+                                                value={userFormData.id_operateur}
+                                                onChange={handleUserChange}
+                                                className={getInputClass(userFormData.id_operateur)}
+                                                required
+                                            >
+                                                <option value="">Sélectionner un opérateur</option>
+                                                {operateurs.map((op) => (
+                                                    <option key={op.id_operateur} value={op.id_operateur}>
+                                                        {op.nom_operateur}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        </div>
                                         <div className="flex gap-4 pt-4">
                                             <button
                                                 type="button"

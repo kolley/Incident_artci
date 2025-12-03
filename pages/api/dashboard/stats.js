@@ -8,82 +8,54 @@ export default async function handler(req, res) {
   }
 
   try {
-    // ✅ Récupération du token depuis req.cookies directement
     const token = req.cookies?.token;
 
-    console.log("🔍 [stats] Token présent:", token ? "✅ OUI" : "❌ NON");
-
-    if (!token) {
-      console.log("❌ [stats] Token manquant");
-      return res.status(401).json({ error: "Token manquant" });
+    if (!token || typeof token !== "string") {
+      return res.status(401).json({ error: "Token invalide ou manquant" });
     }
 
-    if (typeof token !== "string") {
-      console.log("❌ [stats] Token invalide (type):", typeof token);
-      return res.status(401).json({ error: "Token invalide (format incorrect)" });
-    }
-
-    // 🔐 Vérification + décodage
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-
-    // ✅ CORRECTION : utiliser decoded.id_user (pas decoded.id)
     const id_user = decoded.id_user;
     const id_Profil = decoded.id_Profil;
 
-    console.log("✅ [stats] Token décodé - User ID:", id_user, "Profil:", id_Profil);
-
     if (!id_user) {
-      return res.status(401).json({ error: "Token invalide - ID manquant" });
+      return res.status(401).json({ error: "Token invalide" });
     }
 
-    // 📊 Total incidents
-    const totalIncidents = await prisma.formulaire.count();
+    let stats = {};
 
-    // 📊 Incidents clos
-    const incidentsClos = await prisma.formulaire.count({
-      where: { etat: "Clos" }
-    });
+    // 🔥 CAS 1 : ADMIN, SUPERVISEUR, USER_ARTCI → VOIT TOUT
+    if (id_Profil !== "USER_3") {
+      stats.totalIncidents = await prisma.formulaire.count();
 
-    // 📊 Incidents en cours
-    const incidentsEnCours = await prisma.formulaire.count({
-      where: { etat: "Non clos" }
-    });
+      stats.incidentsClos = await prisma.formulaire.count({
+        where: { etat: "Clos" }
+      });
 
-    // 📊 Si utilisateur simple → ses incidents uniquement
-    let mesIncidents = 0;
-    if (id_Profil === "USER_3") {
-      mesIncidents = await prisma.formulaire.count({
-        where: { id_user }
+      stats.incidentsEnCours = await prisma.formulaire.count({
+        where: { etat: "Non clos" }
       });
     }
 
-    console.log("📊 [stats] Statistiques calculées:", {
-      totalIncidents,
-      incidentsClos,
-      incidentsEnCours,
-      mesIncidents
-    });
+    // 🔥 CAS 2 : USER_3 → VOIT UNIQUEMENT SES INCIDENTS
+    if (id_Profil === "USER_3") {
+      stats.totalIncidents = await prisma.formulaire.count({
+        where: { id_user }
+      });
 
-    return res.status(200).json({
-      totalIncidents,
-      incidentsClos,
-      incidentsEnCours,
-      mesIncidents
-    });
+      stats.incidentsClos = await prisma.formulaire.count({
+        where: { id_user, etat: "Clos" }
+      });
 
+      stats.incidentsEnCours = await prisma.formulaire.count({
+        where: { id_user, etat: "Non clos" }
+      });
+    }
+
+    return res.status(200).json(stats);
+        
   } catch (error) {
     console.error("❌ [stats] Erreur:", error.message);
-
-    if (error.name === "JsonWebTokenError") {
-      return res.status(401).json({ error: "Token invalide" });
-    }
-    if (error.name === "TokenExpiredError") {
-      return res.status(401).json({ error: "Token expiré" });
-    }
-
-    return res.status(500).json({ 
-      error: "Erreur interne du serveur", 
-      details: error.message 
-    });
+    return res.status(500).json({ error: "Erreur serveur", details: error.message });
   }
 }
