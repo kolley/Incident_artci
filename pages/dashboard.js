@@ -367,7 +367,9 @@ useEffect(() => {
     }
 
     return (
+        
         <div className="flex h-screen bg-gray-100">
+           
             {/* Sidebar */}
             <aside className={`${sidebarOpen ? 'w-64' : 'w-20'} bg-gradient-to-b from-orange-500/80 to-orange-500/80 text-white transition-all duration-300 flex flex-col`}>
                 <div className="p-4 flex items-center justify-between border-b border-orange-500">
@@ -1084,5 +1086,6 @@ useEffect(() => {
                 </div>
             </main>
         </div>
+        
     );
 }

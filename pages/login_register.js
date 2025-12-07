@@ -48,6 +48,11 @@ export default function LoginPage() {
                         alt="Image de fond ARTCI"
                         className="absolute inset-0 w-full h-screen object-cover opacity-10 mix-blend-multiply z-0"
                     />
+      <img
+                    src="/images/17930.jpg"
+                    alt="Image de fond 2 ARTCI"
+                    className="absolute inset-0 w-full h-screen object-cover opacity-50 mix-blend-multiply z-0"
+                />
       <div className="bg-white shadow-lg rounded-2xl p-8 w-full max-w-md relative z-10">
         <div className="text-center mb-6">
           <span className="text-4xl">🔒</span>

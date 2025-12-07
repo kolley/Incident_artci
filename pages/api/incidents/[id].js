@@ -10,7 +10,7 @@ export default async function handler(req, res) {
     const auth = verifyToken(req);
 
     if (!auth.success) {
-        console.log("❌ [update-incident] Authentification échouée:", auth.error);
+        console.log("❌ [incidents-api] Authentification échouée:", auth.error);
         return res.status(401).json({
             success: false,
             message: "Non authentifié"
@@ -19,10 +19,67 @@ export default async function handler(req, res) {
 
     const { id_user, id_Profil: userProfil } = auth.user;
 
-    console.log("✅ [update-incident] User ID:", id_user, "Profil:", userProfil);
+    console.log("✅ [incidents-api] User ID:", id_user, "Profil:", userProfil, "Méthode:", req.method);
+
+    // ✅ MÉTHODE GET : Récupérer un incident
+    if (req.method === "GET") {
+        try {
+            // 1. Récupérer l'incident avec les relations
+            const incident = await prisma.formulaire.findUnique({
+                where: { id_formulaire: parseInt(id) },
+                include: {
+                    user: {
+                        select: {
+                            id_user: true,
+                            nom_user: true,
+                            email: true
+                        }
+                    },
+                    operateur: {
+                        select: {
+                            id_operateur: true,
+                            nom_operateur: true
+                        }
+                    }
+                }
+            });
+
+            if (!incident) {
+                return res.status(404).json({
+                    success: false,
+                    message: "Incident non trouvé"
+                });
+            }
+
+            // 2. Vérifier les permissions (USER_3 voit uniquement ses incidents)
+            if (userProfil === "USER_3" && incident.id_user !== id_user) {
+                console.log("❌ [get-incident] Permission refusée");
+                return res.status(403).json({
+                    success: false,
+                    message: "Vous n'avez pas la permission de voir cet incident"
+                });
+            }
+
+            console.log("✅ [get-incident] Incident récupéré:", id);
+
+            // 3. Retourner l'incident
+            return res.status(200).json({
+                success: true,
+                incident: incident
+            });
+
+        } catch (error) {
+            console.error("❌ [get-incident] Erreur:", error);
+            return res.status(500).json({
+                success: false,
+                message: "Erreur serveur",
+                error: error.message
+            });
+        }
+    }
 
     // ✅ MÉTHODE PUT/PATCH : Mise à jour
-    if (req.method === "PUT" || req.method === "PATCH") {
+    else if (req.method === "PUT" || req.method === "PATCH") {
         try {
             // 1. Vérifier que l'incident existe
             const existingIncident = await prisma.formulaire.findUnique({

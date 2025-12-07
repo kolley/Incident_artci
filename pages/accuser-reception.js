@@ -1,116 +1,138 @@
 import { useState } from 'react';
-import Link from "next/link";// valider l'utilisation de link
+import { useRouter } from 'next/router';
+import Link from "next/link";
 
 export default function AccuseReception() {
-  const [selectedOperator, setSelectedOperator] = useState('');
+  const router = useRouter();
   const [incidentRef, setIncidentRef] = useState('');
   const [message, setMessage] = useState('');
   const [dateIncident, setDateIncident] = useState('');
   const [showSuccess, setShowSuccess] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
-
-
-
-
-  
-
-  const operateurs = [
-    { id: 'moov', name: 'Moov Africa', logo: '📱', color: 'bg-blue-600' },
-    { id: 'orange', name: 'Orange CI', logo: '🍊', color: 'bg-orange-600' },
-    { id: 'mtn', name: 'MTN Côte d\'Ivoire', logo: '⚡', color: 'bg-yellow-500' },
-    { id: 'gva', name: 'GVA (Green Network)', logo: '🌿', color: 'bg-pink-500' },
-    { id: 'awalet', name: 'Awalet Telecom', logo: '📡', color: 'bg-purple-600' },
-    { id: 'vipnet', name: 'Vipnet', logo: '💎', color: 'bg-green-600' }
-  ];
-
-  const handleSubmit = () => {
-    if (!selectedOperator || !incidentRef || !message || !dateIncident) return;
+  const handleSubmit = async (e) => {
+    e.preventDefault();
     
-    setShowSuccess(true);
+    if (!incidentRef || !message || !dateIncident) {
+      setError('Tous les champs sont obligatoires');
+      return;
+    }
     
-    setTimeout(() => {
-      setShowSuccess(false);
-      setSelectedOperator('');
-      setIncidentRef('');
-      setMessage('');
-      setDateIncident('');
-    }, 3000);
+    setLoading(true);
+    setError('');
+
+    try {
+      const res = await fetch('/api/accuse-reception/send', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          reference: incidentRef,
+          dateIncident,
+          message
+        })
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        setShowSuccess(true);
+        setTimeout(() => {
+          setShowSuccess(false);
+          setIncidentRef('');
+          setMessage('');
+          setDateIncident('');
+        }, 3000);
+      } else {
+        setError(data.error || 'Erreur lors de l\'envoi');
+      }
+    } catch (err) {
+      console.error('❌ Erreur:', err);
+      setError('Erreur de connexion au serveur');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
-    <div className="min-h-screen bg-orange-500/80 from-orange-50 to-orange-100">
-      <header className="bg-white shadow-sm">
+    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-orange-50">
+      {/* HEADER */}
+      <header className="bg-white shadow-md border-b-4 border-orange-500">
         <nav className="flex items-center justify-between p-6 lg:px-8 max-w-7xl mx-auto">
-          <div className="flex lg:flex-1">
-            <Link href="/" className="flex items-center">
+          <Link href="/" className="flex items-center">
             <img src="/images/ARTCI-2_img.png" alt="Logo ARTCI" className="h-16 w-auto object-contain" />
           </Link>
+          
+          <div className="hidden lg:flex lg:gap-x-8">
+            <Link href="/" className="text-lg font-semibold text-gray-700 hover:text-orange-600 transition">
+              Accueil
+            </Link>
+            <Link href="/dashboard" className="text-lg font-semibold text-gray-700 hover:text-orange-600 transition">
+              Dashboard
+            </Link>
           </div>
-          <div className="hidden lg:flex lg:gap-x-12">
-            <a href="/" className="text-lg font-semibold text-orange-600 hover:text-orange-700">Accueil</a>
-          </div>
-          <div className="hidden lg:flex lg:gap-x-12">
-            <a href="/dashboard" className="text-lg font-semibold text-orange-600 hover:text-orange-700">Dashboard</a>
-          </div>
-          <div className="hidden lg:flex lg:flex-1 lg:justify-end">
-            <a href="/login_register" className="text-lg font-semibold text-orange-600 hover:text-orange-700">
-              Se Déconnecter <span aria-hidden="true">&rarr;</span>
-            </a>
-          </div>
+          
+          <Link 
+            href="/login_register" 
+            className="hidden lg:flex items-center gap-2 px-6 py-2 bg-orange-600 text-white font-semibold rounded-lg hover:bg-orange-700 transition shadow-md"
+          >
+            Se Déconnecter
+            <span aria-hidden="true">→</span>
+          </Link>
         </nav>
       </header>
 
-      <main className="max-w-4xl mx-auto px-6 py-12">
+      {/* MAIN CONTENT */}
+      <main className="max-w-5xl mx-auto px-6 py-12">
+        {/* TITRE */}
         <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold text-white mb-4">
+          <div className="inline-block p-4 bg-orange-100 rounded-full mb-4">
+            <span className="text-5xl">📧</span>
+          </div>
+          <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
             Accusé de Réception d'Incident
           </h1>
-          <p className="text-lg text-gray-600">
-            Envoyez un accusé de réception aux opérateurs télécom concernés
+          <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+            Envoyez un accusé de réception officiel aux opérateurs télécom concernés
           </p>
         </div>
 
+        {/* MESSAGE DE SUCCÈS */}
         {showSuccess && (
-          <div className="mb-8 p-6 bg-green-100 border-l-4 border-green-500 rounded-lg">
+          <div className="mb-8 p-6 bg-gradient-to-r from-green-50 to-green-100 border-l-4 border-green-500 rounded-xl shadow-lg">
             <div className="flex items-center">
-              <span className="text-3xl mr-4">✅</span>
+              <span className="text-4xl mr-4">✅</span>
               <div>
-                <h3 className="text-lg font-semibold text-green-800">Accusé de réception envoyé avec succès!</h3>
-                <p className="text-green-700">L'opérateur a été notifié de la prise en charge de l'incident.</p>
+                <h3 className="text-xl font-bold text-green-800">Accusé de réception envoyé !</h3>
+                <p className="text-green-700 mt-1">L'opérateur a été notifié par email de la prise en charge de l'incident.</p>
               </div>
             </div>
           </div>
         )}
 
-        <div className="bg-white rounded-2xl shadow-xl p-8">
-          <div className="mb-8">
-            <label className="block text-lg font-semibold text-gray-900 mb-4">
-              Sélectionnez l'opérateur
-            </label>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-              {operateurs.map((op) => (
-                <button
-                  key={op.id}
-                  type="button"
-                  onClick={() => setSelectedOperator(op.id)}
-                  className={`p-6 rounded-xl border-2 transition-all ${
-                    selectedOperator === op.id
-                      ? `${op.color} text-white border-transparent shadow-lg scale-105`
-                      : 'bg-white border-gray-200 hover:border-orange-300 hover:shadow-md'
-                  }`}
-                >
-                  <div className="text-4xl mb-2">{op.logo}</div>
-                  <div className={`font-semibold ${selectedOperator === op.id ? 'text-white' : 'text-gray-900'}`}>
-                    {op.name}
-                  </div>
-                </button>
-              ))}
+        {/* MESSAGE D'ERREUR */}
+        {error && (
+          <div className="mb-8 p-6 bg-gradient-to-r from-red-50 to-red-100 border-l-4 border-red-500 rounded-xl shadow-lg">
+            <div className="flex items-center">
+              <span className="text-4xl mr-4">❌</span>
+              <div>
+                <h3 className="text-xl font-bold text-red-800">Erreur</h3>
+                <p className="text-red-700 mt-1">{error}</p>
+              </div>
             </div>
           </div>
+        )}
 
+        {/* FORMULAIRE */}
+        <form onSubmit={handleSubmit} className="bg-white rounded-2xl shadow-2xl p-8 md:p-10 border border-gray-100">
+          
+          {/* RÉFÉRENCE INCIDENT */}
           <div className="mb-6">
-            <label htmlFor="incidentRef" className="block text-sm font-semibold text-gray-900 mb-2">
-              Référence de l'incident *
+            <label htmlFor="incidentRef" className="block text-sm font-bold text-gray-900 mb-3 flex items-center gap-2">
+              <span>🔖</span>
+              Référence de l'incident <span className="text-red-500">*</span>
             </label>
             <input
               type="text"
@@ -118,80 +140,114 @@ export default function AccuseReception() {
               value={incidentRef}
               onChange={(e) => setIncidentRef(e.target.value)}
               placeholder="Ex: INC-2025-00123"
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+              className="w-full px-4 py-4 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition"
+              required
             />
           </div>
 
+          {/* DATE INCIDENT */}
           <div className="mb-6">
-            <label htmlFor="dateIncident" className="block text-sm font-semibold text-gray-900 mb-2">
-              Date de l'incident *
+            <label htmlFor="dateIncident" className="block text-sm font-bold text-gray-900 mb-3 flex items-center gap-2">
+              <span>📅</span>
+              Date de l'incident <span className="text-red-500">*</span>
             </label>
             <input
               type="date"
               id="dateIncident"
               value={dateIncident}
               onChange={(e) => setDateIncident(e.target.value)}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+              className="w-full px-4 py-4 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition"
+              required
             />
           </div>
 
-          <div className="mb-8">
-            <label htmlFor="message" className="block text-sm font-semibold text-gray-900 mb-2">
-              Message d'accusé de réception *
+          {/* MESSAGE */}
+          <div className="mb-10">
+            <label htmlFor="message" className="block text-sm font-bold text-gray-900 mb-3 flex items-center gap-2">
+              <span>✉️</span>
+              Message d'accusé de réception <span className="text-red-500">*</span>
             </label>
             <textarea
               id="message"
               value={message}
               onChange={(e) => setMessage(e.target.value)}
-              rows={6}
-              placeholder="Nous accusons réception de votre signalement d'incident. Notre équipe technique procède actuellement à l'analyse de la situation..."
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent resize-none"
+              rows={8}
+              placeholder="Nous accusons réception de votre signalement d'incident référencé ci-dessus. Notre équipe technique procède actuellement à l'analyse détaillée de la situation. Nous vous tiendrons informé de l'évolution du traitement de cet incident dans les meilleurs délais."
+              className="w-full px-4 py-4 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 resize-none transition"
+              required
             />
-            <p className="mt-2 text-sm text-gray-500">
-              Rédigez un message professionnel confirmant la réception et la prise en charge de l'incident
+            <p className="mt-3 text-sm text-gray-500 flex items-start gap-2">
+              <span>💡</span>
+              <span>Rédigez un message professionnel et formel confirmant la réception et la prise en charge de l'incident</span>
             </p>
           </div>
 
-          <div className="flex gap-4">
+          {/* BOUTONS */}
+          <div className="flex flex-col sm:flex-row gap-4">
             <button
-              type="button"
-              onClick={handleSubmit}
-              disabled={!selectedOperator || !incidentRef || !message || !dateIncident}
-              className="flex-1 py-4 px-6 bg-orange-600 text-white font-semibold rounded-lg hover:bg-orange-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-all shadow-md hover:shadow-lg"
+              type="submit"
+              disabled={loading || !incidentRef || !message || !dateIncident}
+              className="flex-1 py-4 px-8 bg-gradient-to-r from-orange-500 to-orange-600 text-white font-bold rounded-xl hover:from-orange-600 hover:to-orange-700 disabled:from-gray-300 disabled:to-gray-400 disabled:cursor-not-allowed transition-all shadow-lg hover:shadow-xl hover:scale-105 disabled:hover:scale-100 flex items-center justify-center gap-2"
             >
-              Envoyer l'accusé de réception
+              {loading ? (
+                <>
+                  <div className="h-5 w-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  <span>Envoi en cours...</span>
+                </>
+              ) : (
+                <>
+                  <span>📤</span>
+                  <span>Envoyer l'accusé de réception</span>
+                </>
+              )}
             </button>
             <button
               type="button"
               onClick={() => {
-                setSelectedOperator('');
                 setIncidentRef('');
                 setMessage('');
                 setDateIncident('');
+                setError('');
               }}
-              className="px-6 py-4 border-2 border-gray-300 text-gray-700 font-semibold rounded-lg hover:bg-gray-50 transition-all"
+              className="px-8 py-4 border-2 border-gray-300 text-gray-700 font-bold rounded-xl hover:bg-gray-50 hover:border-gray-400 transition-all shadow-md hover:shadow-lg"
+              disabled={loading}
             >
-              Réinitialiser
+              🔄 Réinitialiser
             </button>
           </div>
-        </div>
+        </form>
 
-        <div className="mt-8 bg-blue-50 border-l-4 border-blue-500 p-6 rounded-lg">
-          <div className="flex items-start">
-            <span className="text-2xl mr-4">ℹ️</span>
+        {/* INFORMATIONS */}
+        <div className="mt-10 bg-gradient-to-r from-blue-50 to-blue-100 border-l-4 border-blue-500 p-6 rounded-xl shadow-lg">
+          <div className="flex items-start gap-4">
+            <span className="text-3xl">ℹ️</span>
             <div>
-              <h3 className="font-semibold text-blue-900 mb-2">Informations importantes</h3>
-              <ul className="text-sm text-blue-800 space-y-1">
-                <li>• L'accusé de réception sera envoyé par email à l'opérateur sélectionné</li>
-                <li>• Une copie sera archivée dans le système de gestion des incidents</li>
+              <h3 className="font-bold text-blue-900 mb-3 text-lg">Informations importantes</h3>
+              <ul className="text-sm text-blue-800 space-y-2">
+                <li className="flex items-start gap-2">
+                  <span>•</span>
+                  <span>L'accusé de réception sera envoyé <strong>par email</strong> à tous les opérateurs concernés</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span>•</span>
+                  <span>Une copie sera <strong>automatiquement archivée</strong> dans le système de gestion des incidents</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span>•</span>
+                  <span>Assurez-vous que la <strong>référence de l'incident</strong> est correcte avant l'envoi</span>
+                </li>
               </ul>
             </div>
           </div>
         </div>
       </main>
 
-      <footer className="mt-16 py-8 text-center text-gray-600 text-sm">
-        © 2025 ARTCI - Tous droits réservés
+      {/* FOOTER */}
+      <footer className="mt-16 py-8 border-t-2 border-gray-200 bg-white">
+        <div className="text-center text-gray-600 text-sm">
+          <p className="font-semibold">© 2025 ARTCI - Autorité de Régulation des Télécommunications de Côte d'Ivoire</p>
+          <p className="mt-2">Tous droits réservés</p>
+        </div>
       </footer>
     </div>
   );

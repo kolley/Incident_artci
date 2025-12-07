@@ -1,1 +1,23 @@
 @import "tailwindcss";
+
+/* === Animations personnalisées === */
+
+@keyframes fadeUp {
+  0% {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fade-up {
+  animation: fadeUp 2.8s ease-out forwards;
+}
+
+.fade-up-delay {
+  animation: fadeUp 2s ease-out forwards;
+  animation-delay: 0.3s;
+}

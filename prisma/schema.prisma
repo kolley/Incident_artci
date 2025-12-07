@@ -84,6 +84,7 @@ model Formulaire {
   observation      String?
 
   etat             String
+  accuseEnvoye      Boolean      @default(false)
   createdAt        DateTime      @default(now())
   updatedAt        DateTime      @updatedAt
 }
