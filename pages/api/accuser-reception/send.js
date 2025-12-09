@@ -1,12 +1,33 @@
 // pages/api/accuser-reception/send.js
 import nodemailer from "nodemailer";
 import { PrismaClient } from "@prisma/client";
+import { verifyToken } from "../../../service/middleware/auth";
 
 const prisma = new PrismaClient();
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {
     return res.status(405).json({ success: false, message: "Méthode non autorisée" });
+  }
+
+  // ✅ VÉRIFICATION DE L'AUTHENTIFICATION ET DES PERMISSIONS
+  const auth = verifyToken(req);
+  
+  if (!auth.success) {
+    console.log("❌ [accuser-reception] Authentification échouée:", auth.error);
+    return res.status(401).json({ success: false, message: "Non authentifié" });
+  }
+
+  const { id_Profil: userProfil } = auth.user;
+
+  // ✅ VÉRIFIER QUE L'UTILISATEUR EST ADMIN OU SUPERVISEUR
+  const allowedProfils = ["SUP_AD0", "SUPER_1", "SUPER_2"];
+  if (!allowedProfils.includes(userProfil)) {
+    console.log("❌ [accuser-reception] Permission refusée pour profil:", userProfil);
+    return res.status(403).json({ 
+      success: false, 
+      message: "Vous n'avez pas la permission d'envoyer des accusés de réception" 
+    });
   }
 
   const { id_formulaire } = req.body;
@@ -38,11 +59,11 @@ export default async function handler(req, res) {
       });
     }
 
-    // 3️⃣ Configuration du transporteur Nodemailer pour Office 365
+    // 3️⃣ Configuration du transporteur Nodemailer pour Gmail
     const transporter = nodemailer.createTransport({
       host: process.env.EMAIL_HOST,
       port: parseInt(process.env.EMAIL_PORT),
-      secure: false, // true pour le port 465, false pour les autres ports
+      secure: false,
       auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASSWORD,

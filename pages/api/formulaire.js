@@ -59,32 +59,111 @@ export default async function handler(req, res) {
       etat,
     } = req.body;
 
-    // Validation des champs obligatoires
-    if (
-      !typeIncident_infrastructure ||
-      !typeIncident_zone ||
-      !typeIncident_abonne ||
-      !intitule ||
-      !descriptif ||
-      !zone ||
-      !localite ||
-      !communes ||
-      !abonnesimpactes ||
-      !noeudsTouches ||
-      !impacts ||
-      !resolution ||
-      !etat
-    ) {
-      console.log("❌ [formulaire] Champs manquants");
-      return res.status(400).json({ 
-        error: "Certains champs obligatoires ne sont pas remplis." 
+    // 🔍 Validation champ par champ (permet de renvoyer le champ précis)
+
+    if (!reference || reference.trim() === "") {
+      return res.status(400).json({
+        error: "Le champ référence est obligatoire.",
+        field: "reference"
       });
     }
 
+    if (!typeIncident_infrastructure) {
+      return res.status(400).json({
+        error: "Veuillez sélectionner le type d'incident infrastructure.",
+        field: "typeIncident_infrastructure"
+      });
+    }
+
+    if (!typeIncident_zone) {
+      return res.status(400).json({
+        error: "Veuillez sélectionner le type d'incident zone.",
+        field: "typeIncident_zone"
+      });
+    }
+
+    if (!typeIncident_abonne) {
+      return res.status(400).json({
+        error: "Veuillez sélectionner le type d'incident abonné.",
+        field: "typeIncident_abonne"
+      });
+    }
+
+    if (!intitule) {
+      return res.status(400).json({
+        error: "Le champ intitulé est obligatoire.",
+        field: "intitule"
+      });
+    }
+
+    if (!descriptif) {
+      return res.status(400).json({
+        error: "Le champ descriptif est obligatoire.",
+        field: "descriptif"
+      });
+    }
+
+    if (!zone) {
+      return res.status(400).json({
+        error: "Le champ zone est obligatoire.",
+        field: "zone"
+      });
+    }
+
+    if (!localite) {
+      return res.status(400).json({
+        error: "Le champ localité est obligatoire.",
+        field: "localite"
+      });
+    }
+
+    if (!communes) {
+      return res.status(400).json({
+        error: "Le champ communes est obligatoire.",
+        field: "communes"
+      });
+    }
+
+    if (!abonnesimpactes) {
+      return res.status(400).json({
+        error: "Le nombre d'abonnés impactés est obligatoire.",
+        field: "abonnesimpactes"
+      });
+    }
+
+    if (!noeudsTouches) {
+      return res.status(400).json({
+        error: "Le nombre de nœuds touchés est obligatoire.",
+        field: "noeudsTouches"
+      });
+    }
+
+    if (!impacts) {
+      return res.status(400).json({
+        error: "Le champ impacts est obligatoire.",
+        field: "impacts"
+      });
+    }
+
+    if (!resolution) {
+      return res.status(400).json({
+        error: "Le champ résolution est obligatoire.",
+        field: "resolution"
+      });
+    }
+
+    if (!etat) {
+      return res.status(400).json({
+        error: "Veuillez choisir un état pour l'incident.",
+        field: "etat"
+      });
+    }
+
+    // 🔍 Cas particulier : incident clos → dates obligatoires
     if (etat === "Clos" && (!dateDebut || !dateFin)) {
-      console.log("❌ [formulaire] Dates manquantes pour incident clos");
       return res.status(400).json({
         error: "Les dates de début et de fin sont obligatoires pour un incident clos.",
+        field: !dateDebut ? "dateDebut" : "dateFin"
       });
     }
 
@@ -96,7 +175,7 @@ export default async function handler(req, res) {
         typeIncident_infrastructure,
         typeIncident_zone,
         typeIncident_abonne,
-        reference: reference || null,
+        reference,
         intitule,
         descriptif,
         zone,
@@ -123,6 +202,15 @@ export default async function handler(req, res) {
 
   } catch (error) {
     console.error("❌ [formulaire] Erreur lors de l'enregistrement:", error);
+    
+    // ✅ GESTION DE L'ERREUR DE RÉFÉRENCE DUPLIQUÉE
+    if (error.code === "P2002" && error.meta?.target?.includes("reference")) {
+      return res.status(400).json({ 
+        error: "Cette référence existe déjà. Veuillez en choisir une autre.",
+        field: "reference"
+      });
+    }
+    
     return res.status(500).json({ 
       error: "Erreur interne du serveur",
       details: error.message 

@@ -67,14 +67,14 @@ model Formulaire {
   typeIncident_zone  String
   typeIncident_abonne  String
 
-  reference       String?
+  reference       String      @unique
   intitule        String
   descriptif      String
   zone            String
   localite        String
   communes        String
   abonnesimpactes Int
-  noeudsTouches   Int
+  noeudsTouches   Int 
   impacts         String
   resolution      String
 

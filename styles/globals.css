@@ -21,3 +21,13 @@
   animation: fadeUp 2s ease-out forwards;
   animation-delay: 0.3s;
 }
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-10px); }
+  75% { transform: translateX(10px); }
+}
+
+.animate-shake {
+  animation: shake 0.3s ease-in-out;
+}

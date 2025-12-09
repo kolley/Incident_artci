@@ -12,35 +12,56 @@ export default function IncidentDetailsPage() {
     const [error, setError] = useState(null);
     const [emailSending, setEmailSending] = useState(false);
     const [emailStatus, setEmailStatus] = useState(null);
+    const [userProfil, setUserProfil] = useState(null);
 
     useEffect(() => {
         if (id) {
-            fetchIncidentDetails();
+            fetchUserProfileAndIncident();
         }
     }, [id]);
 
-    const fetchIncidentDetails = async () => {
+    // ✅ Récupérer le profil ET l'incident, puis décider d'envoyer l'email
+    const fetchUserProfileAndIncident = async () => {
         try {
             setLoading(true);
 
-            const response = await fetch(`/api/incidents/${id}`, {
+            // 1️⃣ Récupérer le profil utilisateur
+            const userResponse = await fetch("/api/user/me", {
                 method: "GET",
                 credentials: "include",
             });
 
-            const data = await response.json();
-
-            if (!response.ok) {
-                throw new Error(data.message || "Erreur lors du chargement");
+            let profil = null;
+            if (userResponse.ok) {
+                const userData = await userResponse.json();
+                profil = userData.profil;
+                setUserProfil(profil);
             }
 
-            setIncident(data.incident);
+            // 2️⃣ Récupérer l'incident
+            const incidentResponse = await fetch(`/api/incidents/${id}`, {
+                method: "GET",
+                credentials: "include",
+            });
 
-            // 🚀 Envoyer automatiquement l'accusé de réception si pas encore envoyé
-            if (!data.incident.accuseEnvoye) {
+            const incidentData = await incidentResponse.json();
+
+            if (!incidentResponse.ok) {
+                throw new Error(incidentData.message || "Erreur lors du chargement");
+            }
+
+            setIncident(incidentData.incident);
+
+            // 3️⃣ Si admin/superviseur ET accusé pas encore envoyé → envoyer automatiquement
+            const isAdminOrSupervisor = ["SUP_AD0", "SUPER_1", "SUPER_2"].includes(profil);
+
+            if (isAdminOrSupervisor && !incidentData.incident.accuseEnvoye) {
+                console.log("✅ Admin/Superviseur détecté → Envoi automatique de l'accusé");
                 await sendAccuseReception(id);
-            } else {
+            } else if (incidentData.incident.accuseEnvoye) {
                 setEmailStatus({ type: "already", message: "Accusé de réception déjà envoyé" });
+            } else {
+                console.log("ℹ️ Utilisateur standard → Pas d'envoi automatique");
             }
 
         } catch (err) {
@@ -71,11 +92,18 @@ export default function IncidentDetailsPage() {
                     setEmailStatus({ type: "already", message: "Accusé de réception déjà envoyé" });
                 } else {
                     setEmailStatus({ type: "success", message: "✅ Accusé de réception envoyé avec succès !" });
-                    // Recharger l'incident pour mettre à jour le statut
-                    fetchIncidentDetails();
+                    // Recharger l'incident pour mettre à jour le badge
+                    const incidentResponse = await fetch(`/api/incidents/${incidentId}`, {
+                        method: "GET",
+                        credentials: "include",
+                    });
+                    const incidentData = await incidentResponse.json();
+                    if (incidentData.success) {
+                        setIncident(incidentData.incident);
+                    }
                 }
             } else {
-                setEmailStatus({ type: "error", message: "⚠️ Erreur lors de l'envoi de l'accusé" });
+                setEmailStatus({ type: "error", message: data.message || "⚠️ Erreur lors de l'envoi" });
             }
 
         } catch (err) {
@@ -191,7 +219,7 @@ export default function IncidentDetailsPage() {
                 <div className="bg-white rounded-2xl shadow-xl p-8 mb-6">
                     <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
                         <div className="flex-1">
-                            <div className="flex items-center gap-3 mb-3">
+                            <div className="flex items-center gap-3 mb-3 flex-wrap">
                                 <span className="text-3xl font-bold text-orange-600">{incident.reference || 'N/A'}</span>
                                 <span className={`px-4 py-2 rounded-full text-sm font-bold border-2 ${getEtatBadge(incident.etat)}`}>
                                     {incident.etat}
@@ -312,6 +340,6 @@ export default function IncidentDetailsPage() {
                     © 2025 ARTCI - Tous droits réservés
                 </div>
             </footer>
-        </div>  
+        </div>
     );
 }

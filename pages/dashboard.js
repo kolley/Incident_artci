@@ -19,6 +19,7 @@ import {
 export default function Dashboard() {
     const router = useRouter();
     const [userProfil, setUserProfil] = useState(null);
+    const [profils, setProfils] = useState([]);
     const [userName, setUserName] = useState("");
     const [activeTab, setActiveTab] = useState("stats");
     const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -59,6 +60,15 @@ export default function Dashboard() {
         etat: "",
     });
 
+    const handleIncidentChange = (e) => {
+        const { name, value } = e.target;
+        setIncidentFormData(prev => ({
+            ...prev,
+            [name]: value
+        }));
+    };
+
+
     // État du formulaire utilisateur
     const [userFormData, setUserFormData] = useState({
         nom_user: "",
@@ -69,86 +79,99 @@ export default function Dashboard() {
     });
     const [operateurs, setOperateurs] = useState([]);
 
-   
 
-   // ⬇️ Ajouter la fonction ici
-const fetchStats = async () => {
-    try {
-        const res = await fetch("/api/dashboard/stats");
-        if (!res.ok) {
-            console.log("❌ Erreur récupération statistiques");
-            return;
-        }
 
-        const data = await res.json();
-        console.log("📊 Stats récupérées :", data);
-        setStats(data);
-    } catch (error) {
-        console.error("❌ Erreur fetchStats():", error);
-    }
-};
-
-useEffect(() => {
-    const verifyUser = async () => {
+    // ⬇️ Ajouter la fonction ici
+    const fetchStats = async () => {
         try {
-            const res = await fetch("/api/user/me", {
-                method: "GET",
-                credentials: "include"
-            });
-
+            const res = await fetch("/api/dashboard/stats");
             if (!res.ok) {
-                console.log("❌ Utilisateur non authentifié");
-                router.push("/login_register");
+                console.log("❌ Erreur récupération statistiques");
                 return;
             }
 
             const data = await res.json();
-            console.log("✅ Utilisateur récupéré:", data.nom, "- Profil:", data.profil);
-
-            setUserProfil(data.profil);
-            setUserName(data.nom);
-            setUserOperateur(data.operateur);
-
-            // 🔹 Charger les stats
-            await fetchStats();
-
-            // 🔹 Charger les opérateurs
-            const opRes = await fetch("/api/user/operateur");
-            if (opRes.ok) {
-                const opData = await opRes.json();
-                console.log("📦 Operateurs récupérés :", opData);
-                setOperateurs(opData);
-            }
-
+            console.log("📊 Stats récupérées :", data);
+            setStats(data);
         } catch (error) {
-            console.error("❌ Erreur verifyUser:", error);
+            console.error("❌ Erreur fetchStats():", error);
         }
     };
 
-    verifyUser();
-}, [router]);
+    useEffect(() => {
+        const verifyUser = async () => {
+            try {
+                const res = await fetch("/api/user/me", {
+                    method: "GET",
+                    credentials: "include"
+                });
 
-/*
-    const fetchStats = async () => {
-        try {
-            const res = await fetch("/api/dashboard/stats", {
-                method: "GET",
-                credentials: "include"
-            });
+                if (!res.ok) {
+                    console.log("❌ Utilisateur non authentifié");
+                    router.push("/login_register");
+                    return;
+                }
 
-            if (!res.ok) {
-                console.error("❌ Erreur stats:", await res.text());
-                return;
+                const data = await res.json();
+                console.log("✅ Utilisateur récupéré:", data.nom, "- Profil:", data.profil);
+
+                setUserProfil(data.profil);
+                setUserName(data.nom);
+                setUserOperateur(data.operateur);
+
+                // 🔹 Charger les stats
+                await fetchStats();
+
+                // 🔹 Charger les profils pour le formulaire inscription user
+
+                const fetchProfils = async () => {
+                    try {
+                        const res = await fetch("/api/user/profil");
+                        const data = await res.json();
+                        setProfils(data);
+                    } catch (error) {
+                        console.error("Erreur chargement profils :", error);
+                    }
+                };
+                fetchProfils();
+
+                // 🔹 Charger les opérateurs
+                const opRes = await fetch("/api/user/operateur");
+                if (opRes.ok) {
+                    const opData = await opRes.json();
+                    console.log("📦 Operateurs récupérés :", opData);
+                    setOperateurs(opData);
+                }
+
+            } catch (error) {
+                console.error("❌ Erreur verifyUser:", error);
             }
+        };
 
-            const data = await res.json();
-            console.log("📊 Stats récupérées:", data);
-            setStats(data);
+        verifyUser();
+    }, [router]);
 
-        } catch (error) {
-            console.error("❌ Erreur fetchStats:", error);
-        }
-    };*/
+    /*
+        const fetchStats = async () => {
+            try {
+                const res = await fetch("/api/dashboard/stats", {
+                    method: "GET",
+                    credentials: "include"
+                });
+    
+                if (!res.ok) {
+                    console.error("❌ Erreur stats:", await res.text());
+                    return;
+                }
+    
+                const data = await res.json();
+                console.log("📊 Stats récupérées:", data);
+                setStats(data);
+    
+            } catch (error) {
+                console.error("❌ Erreur fetchStats:", error);
+            }
+        };*/
 
     const handleLogout = async () => {
         try {
@@ -169,37 +192,58 @@ useEffect(() => {
         }
     };
 
-    // ✅ Gestion du formulaire d'incident
-    const handleIncidentChange = (e) => {
-        setIncidentFormData({
-            ...incidentFormData,
-            [e.target.name]: e.target.value,
-        });
-    };
-
+    // ✅ Gestion du formulaire d'incident (VERSION NETTOYÉE)
     const handleIncidentSubmit = async (e) => {
         e.preventDefault();
+
         try {
+            // S'assurer que l'opérateur est présent dans le payload
+            const payload = {
+                ...incidentFormData,
+                id_operateur: incidentFormData.id_operateur ?? userOperateur?.id_operateur ?? null,
+                nom_operateur: incidentFormData.nom_operateur ?? userOperateur?.nom_operateur ?? ""
+            };
+
             const response = await fetch("/api/formulaire", {
                 method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
+                headers: { "Content-Type": "application/json" },
                 credentials: "include",
-                body: JSON.stringify(incidentFormData),
+                body: JSON.stringify(payload),
             });
 
+            const data = await response.json();
+
+            // ❌ Gestion des erreurs
             if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.error || "Erreur lors de la déclaration");
+                alert("❌ " + (data.error || "Erreur lors de la déclaration"));
+
+                // ✅ Scroll vers le champ en erreur
+                if (data.field) {
+                    const element = document.querySelector(`[name="${data.field}"]`);
+                    if (element) {
+                        element.scrollIntoView({ behavior: "smooth", block: "center" });
+                        element.focus();
+
+                        // (Optionnel) Ajouter une bordure rouge temporaire
+                        element.classList.add("border-red-500");
+                        setTimeout(() => {
+                            element.classList.remove("border-red-500");
+                        }, 2000);
+                    }
+                }
+                return; // ⚠️ IMPORTANT : Arrêter ici si erreur
             }
 
+            // ✅ Succès : afficher le message
             alert("✅ Incident déclaré avec succès !");
 
-            // Réinitialiser et fermer
+            // ✅ Réinitialiser le formulaire en conservant l'opérateur
             setIncidentFormData({
-                id_operateur: userOperateur?.id_operateur || "",
-                nom_operateur: userOperateur?.nom_operateur || "",
+                id_operateur: userOperateur?.id_operateur ?? null,
+                nom_operateur: userOperateur?.nom_operateur ?? "",
+                typeIncident_infrastructure: "",
+                typeIncident_zone: "",
+                typeIncident_abonne: "",
                 reference: "",
                 intitule: "",
                 descriptif: "",
@@ -207,9 +251,6 @@ useEffect(() => {
                 localite: "",
                 communes: "",
                 abonnesimpactes: "",
-                typeIncident_abonne: "",
-                typeIncident_infrastructure: "",
-                typeIncident_zone: "",
                 noeudsTouches: "",
                 impacts: "",
                 resolution: "",
@@ -218,15 +259,16 @@ useEffect(() => {
                 observation: "",
                 etat: "",
             });
+
+            // ✅ Fermer le formulaire et rafraîchir
             setShowIncidentForm(false);
-            fetchStats(); // Rafraîchir les stats
+            await fetchStats();
 
         } catch (err) {
-            console.error("❌ Erreur:", err);
-            alert(`Erreur: ${err.message}`);
+            console.error("❌ Erreur handleIncidentSubmit:", err);
+            alert("❌ Erreur: " + (err.message || err));
         }
     };
-
     // ✅ Gestion du formulaire utilisateur
     const handleUserChange = (e) => {
         setUserFormData({
@@ -260,7 +302,7 @@ useEffect(() => {
                 email: "",
                 password: "",
                 id_Profil: "",
-                id_operateur: ""  
+                id_operateur: ""
             });
             setShowUserForm(false);
 
@@ -367,9 +409,9 @@ useEffect(() => {
     }
 
     return (
-        
+
         <div className="flex h-screen bg-gray-100">
-           
+
             {/* Sidebar */}
             <aside className={`${sidebarOpen ? 'w-64' : 'w-20'} bg-gradient-to-b from-orange-500/80 to-orange-500/80 text-white transition-all duration-300 flex flex-col`}>
                 <div className="p-4 flex items-center justify-between border-b border-orange-500">
@@ -518,19 +560,19 @@ useEffect(() => {
                             <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
                                 <h2 className="text-xl font-bold text-gray-800 mb-4">Actions rapides</h2>
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                {["SUP_AD0", "USER_3"].includes(userProfil) && (
-                                    <button
-                                        onClick={() => {
-                                            setShowIncidentForm(!showIncidentForm);
-                                            setShowUserForm(false); // Fermer l'autre formulaire
-                                        }}
-                                        className="p-4 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-lg hover:shadow-xl transition flex items-center gap-3"
-                                    >
-                                        <FaFileAlt size={24} />
-                                        <span className="font-semibold">
-                                            {showIncidentForm ? "Masquer le formulaire" : "Déclarer un incident"}
-                                        </span>
-                                    </button> )}
+                                    {["SUP_AD0", "USER_3"].includes(userProfil) && (
+                                        <button
+                                            onClick={() => {
+                                                setShowIncidentForm(!showIncidentForm);
+                                                setShowUserForm(false); // Fermer l'autre formulaire
+                                            }}
+                                            className="p-4 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-lg hover:shadow-xl transition flex items-center gap-3"
+                                        >
+                                            <FaFileAlt size={24} />
+                                            <span className="font-semibold">
+                                                {showIncidentForm ? "Masquer le formulaire" : "Déclarer un incident"}
+                                            </span>
+                                        </button>)}
 
                                     <button
                                         onClick={() => router.push('/enregistrement')}
@@ -590,7 +632,7 @@ useEffect(() => {
 
                                         <div className="space-y-2">
                                             <label className="block text-sm font-semibold text-gray-700">
-                                                Référence Incident <span className="text-red-500">(optionnel)</span>
+                                                Référence Incident <span className="text-red-500">*</span>
                                             </label>
                                             <input
                                                 type="text"
@@ -1000,20 +1042,18 @@ useEffect(() => {
                                                 required
                                             >
                                                 <option value="">Sélectionner un profil</option>
-                                                {userProfil === "SUP_AD0" && (
-                                                    <>
-                                                        <option value="SUP_AD0">Super Admin</option>
-                                                        <option value="SUPER_1">Superviseur Principal</option>
-                                                        <option value="SUPER_2">Superviseur</option>
-                                                        <option value="USER_3">Utilisateur</option>
-                                                    </>
-                                                )}
-                                                {userProfil === "SUPER_1" && (
-                                                    <>
-                                                        <option value="SUPER_2">Superviseur</option>
-                                                        <option value="USER_3">Utilisateur</option>
-                                                    </>
-                                                )}
+
+                                                {profils
+                                                    .filter((p) => {
+                                                        if (userProfil === "SUP_AD0") return true; // SuperAdmin peut tout créer
+                                                        if (userProfil === "SUPER_1") return ["SUPER_2", "USER_3"].includes(p.id_Profil);
+                                                        return false;
+                                                    })
+                                                    .map((p) => (
+                                                        <option key={p.id_Profil} value={p.id_Profil}>
+                                                            {p.nom_profil}
+                                                        </option>
+                                                    ))}
                                             </select>
                                             <p className="text-xs text-gray-500 mt-1">
                                                 {userProfil === "SUP_AD0" && "Vous pouvez créer tous les types d'utilisateurs"}
@@ -1086,6 +1126,6 @@ useEffect(() => {
                 </div>
             </main>
         </div>
-        
+
     );
 }

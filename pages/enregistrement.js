@@ -13,6 +13,17 @@ export default function IncidentsPage() {
   const [userProfil, setUserProfil] = useState(null);
   const [userId, setUserId] = useState(null);
   const [userName, setUserName] = useState(""); // ← AJOUTE CETTE LIGNE
+  const [incidentFormData, setIncidentFormData] = useState({
+  typeIncident_infrastructure: "",
+  typeIncident_abonne: "",
+  typeIncident_zone: "",
+});
+
+const handleIncidentChange = (e) => {
+  const { name, value } = e.target;
+  setIncidentFormData((prev) => ({ ...prev, [name]: value }));
+};
+
 
   // ✅ État pour le modal d'édition
   const [editingIncident, setEditingIncident] = useState(null);
@@ -26,7 +37,7 @@ export default function IncidentsPage() {
     dateDebut: "",
     dateFin: ""
   });
-
+  
   useEffect(() => {
     fetchIncidents();
   }, []);
@@ -82,7 +93,7 @@ export default function IncidentsPage() {
   useEffect(() => {
     const fetchUserInfo = async () => {
       try {
-        const response = await fetch("/api/user/me", { 
+        const response = await fetch("/api/user/me", {
           method: "GET",
           credentials: "include"
         });
@@ -351,24 +362,19 @@ export default function IncidentsPage() {
     <div className="min-h-screen w-full bg-orange-500/80">
       {/* Header */}
       <header className="bg-white shadow-md sticky top-0 z-50">
-  <nav className="container mx-auto px-6 py-4 flex items-center justify-between">
-    
-    <Link href="/" className="flex items-center">
-      <img src="/images/ARTCI-2_img.png" alt="Logo ARTCI" className="h-16 w-auto object-contain" />
-    </Link>
+        <nav className="container mx-auto px-6 py-4 flex items-center justify-between">
 
-    <div className="flex gap-6 items-center">
+          <Link href="/" className="flex items-center">
+            <img src="/images/ARTCI-2_img.png" alt="Logo ARTCI" className="h-16 w-auto object-contain" />
+          </Link>
 
-      <Link href="/dashboard" className="text-orange-500 hover:text-orange-600 font-semibold transition">
-       dashboard
-      </Link>
+          <div className="flex gap-6 items-center">
 
-      {["SUP_AD0", "SUPER_1"].includes(userProfil) && (
-        <Link href="/register" className="text-gray-700 hover:text-orange-600 font-semibold transition">
-          Créer un utilisateur
-        </Link>
-      )}
-      {/*
+            <Link href="/dashboard" className="text-black-500 hover:text-orange-600 font-semibold transition">
+              dashboard
+            </Link>
+
+            {/*
       <button
         onClick={handleLogout}
         className="text-gray-700 hover:text-orange-600 font-semibold transition"
@@ -376,28 +382,28 @@ export default function IncidentsPage() {
         Déconnexion
       </button>*/ }
 
-      {/* 🔥 BLOC AJOUTÉ EXACTEMENT COMME DONNÉ */}
-      <div className="hidden lg:flex lg:flex-1 lg:justify-end lg:items-center lg:gap-4">
-        {!loading && (
-          <>
-            <span className="text-orange-500 font-medium bg-white/20 px-4 py-2 rounded-lg backdrop-blur-sm">
-              👤 {userName}
-            </span>
-            <button 
-              onClick={handleLogout}
-              className="text-lg font-semibold text-orange-500 hover:text-orange-600 transition-colors"
-            >
-              Se Déconnecter <span aria-hidden="true">&rarr;</span>
-            </button>
-          </>
-        )}
-      </div>
-      {/* 🔥 FIN DU BLOC AJOUTÉ */}
+            {/* 🔥 BLOC AJOUTÉ EXACTEMENT COMME DONNÉ */}
+            <div className="hidden lg:flex lg:flex-1 lg:justify-end lg:items-center lg:gap-4">
+              {!loading && (
+                <>
+                  <span className="text-black-500 font-medium bg-white/20 px-4 py-2 rounded-lg backdrop-blur-sm">
+                    👤 {userName}
+                  </span>
+                  <button
+                    onClick={handleLogout}
+                    className="text-lg font-semibold text-black-500 hover:text-orange-600 transition-colors"
+                  >
+                    Se Déconnecter <span aria-hidden="true">&rarr;</span>
+                  </button>
+                </>
+              )}
+            </div>
+            {/* 🔥 FIN DU BLOC AJOUTÉ */}
 
-    </div>
+          </div>
 
-  </nav>
-</header>
+        </nav>
+      </header>
       {/* Main Content */}
       <div className="container mx-auto px-4 py-8">
         {/* Titre et Stats */}
@@ -424,7 +430,7 @@ export default function IncidentsPage() {
                 </svg>
                 Actualiser
               </button>
-           {/*
+              {/*
 {["SUP_AD0", "SUPER_1", "SUPER_2"].includes(userProfil) && (
   <button
     onClick={() => router.push("/accuser-reception")}
@@ -545,34 +551,34 @@ export default function IncidentsPage() {
             <p className="text-xl text-gray-500">Aucun incident trouvé</p>
           </div>
         ) : (
-            <div className="space-y-6">
-  {filteredIncidents.map((incident) => (
-    <Link href={`/incidents/${incident.id_formulaire}`} key={incident.id_formulaire}>
-      <div
-        className="bg-white rounded-2xl shadow-xl hover:shadow-2xl transition-all duration-300 overflow-hidden cursor-pointer"
-      >
-        <div className="p-6">
-          {/* En-tête de la carte */}
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
-            <div className="flex-1">
-              <div className="flex items-center gap-3 mb-2 flex-wrap">
-                <span className="text-2xl font-bold text-orange-600">{incident.reference || 'N/A'}</span>
-                <span className={`px-3 py-1 rounded-full text-xs font-bold border-2 ${getEtatBadge(incident.etat)}`}>
-                  {incident.etat}
-                </span>
-                {incident.accuseEnvoye && (
-                  <span className="px-3 py-1 rounded-full text-xs font-bold bg-green-100 text-green-800 border-2 border-green-300">
-                    ✅ Accusé envoyé
-                  </span>
-                )}
-              </div>
-              <h3 className="text-xl font-semibold text-gray-800">{incident.intitule}</h3>
-              {["SUP_AD0", "SUPER_1", "SUPER_2"].includes(userProfil) && incident.user && (
-                <p className="text-sm text-gray-600 mt-1">
-                  👤 Créé par: <span className="font-semibold">{incident.user.nom_user}</span> ({incident.user.email})
-                </p>
-              )}
-            </div>
+          <div className="space-y-10">
+            {filteredIncidents.map((incident) => (
+              <Link href={`/incidents/${incident.id_formulaire}`} key={incident.id_formulaire}>
+                <div
+                  className="bg-white rounded-2xl shadow-xl hover:shadow-2xl transition-all duration-300 overflow-hidden cursor-pointer"
+                >
+                  <div className="p-6">
+                    {/* En-tête de la carte */}
+                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3 mb-2 flex-wrap">
+                          <span className="text-2xl font-bold text-orange-600">{incident.reference || 'N/A'}</span>
+                          <span className={`px-3 py-1 rounded-full text-xs font-bold border-2 ${getEtatBadge(incident.etat)}`}>
+                            {incident.etat}
+                          </span>
+                          {incident.accuseEnvoye && (
+                            <span className="px-3 py-1 rounded-full text-xs font-bold bg-green-100 text-green-800 border-2 border-green-300">
+                              ✅ Accusé envoyé
+                            </span>
+                          )}
+                        </div>
+                        <h3 className="text-xl font-semibold text-gray-800">{incident.intitule}</h3>
+                        {["SUP_AD0", "SUPER_1", "SUPER_2"].includes(userProfil) && incident.user && (
+                          <p className="text-sm text-gray-600 mt-1">
+                            👤 Créé par: <span className="font-semibold">{incident.user.nom_user}</span> ({incident.user.email})
+                          </p>
+                        )}
+                      </div>
                       <div className="flex gap-2 flex-wrap items-center">
                         <span className="px-3 py-1 bg-orange-100 text-orange-800 rounded-full text-sm font-semibold">
                           {incident.operateur}
@@ -582,10 +588,10 @@ export default function IncidentsPage() {
                         </span>
 
                         {/* ✅ Boutons Modifier/Supprimer */}
-                      <div className="flex gap-2" onClick={(e) => e.preventDefault()}>
-                        {canEdit(incident) && (
-                          <button
-                            onClick={() => openEditModal(incident)}
+                        <div className="flex gap-2" onClick={(e) => e.preventDefault()}>
+                          {canEdit(incident) && (
+                            <button
+                              onClick={() => openEditModal(incident)}
                               className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition text-sm font-semibold"
                             >
                               ✏️ Modifier
@@ -669,39 +675,39 @@ export default function IncidentsPage() {
                       </p>
                     </div>
                   </div>
-              </div>
-            </Link>
-          ))}
-              </div>
-            )}
+                </div>
+              </Link>
+            ))}
           </div>
+        )}
+      </div>
 
       {/* Footer */}
-        <footer className="bg-white mt-12 py-6 border-t-2 border-orange-200">
-          <div className="container mx-auto px-4 text-center text-gray-600">
-            © 2025 ARTCI - Tous droits réservés
-          </div>
-        </footer>
+      <footer className="bg-white mt-12 py-6 border-t-2 border-orange-200">
+        <div className="container mx-auto px-4 text-center text-gray-600">
+          © 2025 ARTCI - Tous droits réservés
+        </div>
+      </footer>
 
-        {/* ✅ MODAL D'ÉDITION */}
-        {editingIncident && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-            <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-              <div className="sticky top-0 bg-white border-b-2 border-orange-500 p-6 flex justify-between items-center">
-                <h2 className="text-2xl font-bold text-orange-600">✏️ Modifier l'incident</h2>
-                <button
-                  onClick={closeEditModal}
-                  className="p-2 hover:bg-gray-100 rounded-full transition"
-                >
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              </div>
+      {/* ✅ MODAL D'ÉDITION */}
+      {editingIncident && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="sticky top-0 bg-white border-b-2 border-orange-500 p-6 flex justify-between items-center">
+              <h2 className="text-2xl font-bold text-orange-600">✏️ Modifier l'incident</h2>
+              <button
+                onClick={closeEditModal}
+                className="p-2 hover:bg-gray-100 rounded-full transition"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
 
-              <form onSubmit={handleEditSubmit} className="p-6 space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
+            <form onSubmit={handleEditSubmit} className="p-6 space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/*<div>
                     <label className="block text-sm font-semibold text-gray-700 mb-2">
                       Opérateur <span className="text-red-500">*</span>
                     </label>
@@ -720,249 +726,312 @@ export default function IncidentsPage() {
                       <option value="AWALE">AWALE</option>
                       <option value="GVA">GVA</option>
                     </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">
-                      Référence
-                    </label>
-                    <input
-                      type="text"
-                      name="reference"
-                      value={editFormData.reference}
-                      onChange={handleEditChange}
-                      className={getInputClass(editFormData.reference)}
-                    />
-                  </div>
-                </div>
+                  </div>*/}
 
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Intitulé <span className="text-red-500">*</span>
+                    Référence
                   </label>
                   <input
                     type="text"
-                    name="intitule"
-                    value={editFormData.intitule}
+                    name="reference"
+                    value={editFormData.reference}
                     onChange={handleEditChange}
-                    className={getInputClass(editFormData.intitule)}
-                    required
+                    className={getInputClass(editFormData.reference)}
                   />
                 </div>
+              </div>
 
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Intitulé <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  name="intitule"
+                  value={editFormData.intitule}
+                  onChange={handleEditChange}
+                  className={getInputClass(editFormData.intitule)}
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Descriptif <span className="text-red-500">*</span>
+                </label>
+                <textarea
+                  name="descriptif"
+                  value={editFormData.descriptif}
+                  onChange={handleEditChange}
+                  className={getInputClass(editFormData.descriptif)}
+                  rows="3"
+                  required
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Descriptif <span className="text-red-500">*</span>
+                    Zone <span className="text-red-500">*</span>
                   </label>
-                  <textarea
-                    name="descriptif"
-                    value={editFormData.descriptif}
+                  <input
+                    type="text"
+                    name="zone"
+                    value={editFormData.zone}
                     onChange={handleEditChange}
-                    className={getInputClass(editFormData.descriptif)}
-                    rows="3"
+                    className={getInputClass(editFormData.zone)}
                     required
                   />
                 </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    Localité <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    name="localite"
+                    value={editFormData.localite}
+                    onChange={handleEditChange}
+                    className={getInputClass(editFormData.localite)}
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    Communes <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    name="communes"
+                    value={editFormData.communes}
+                    onChange={handleEditChange}
+                    className={getInputClass(editFormData.communes)}
+                    required
+                  />
+                </div>
+              </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">
-                      Zone <span className="text-red-500">*</span>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    Abonnés impactés <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="number"
+                    name="abonnesimpactes"
+                    value={editFormData.abonnesimpactes}
+                    onChange={handleEditChange}
+                    className={getInputClass(editFormData.abonnesimpactes)}
+                    min="0"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    Nœuds touchés <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="number"
+                    name="noeudsTouches"
+                    value={editFormData.noeudsTouches}
+                    onChange={handleEditChange}
+                    className={getInputClass(editFormData.noeudsTouches)}
+                    min="0"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="border-t-2 border-orange-200 pt-4 mt-6">
+                <h2 className="text-xl font-bold text-orange-600 mb-4">Détails de l'incident</h2>
+              </div>
+
+              <div className="space-y-2">
+                <label className="block text-sm font-semibold text-gray-700">
+                  Type de l'incident <span className="text-red-500">*</span>
+                </label>
+
+                <div className="space-y-4">
+                  {/* Type d'incident par infrastructure */}
+                  <div className="space-y-2">
+                    <label className="block text-sm font-semibold text-gray-700">
+                      Type incident — Infrastructure <span className="text-red-500">*</span>
                     </label>
-                    <input
-                      type="text"
-                      name="zone"
-                      value={editFormData.zone}
-                      onChange={handleEditChange}
-                      className={getInputClass(editFormData.zone)}
-                      required
-                    />
+
+                    <div className="flex items-center gap-4">
+                      {["I1", "I2", "I3"].map((lvl) => (
+                        <label key={lvl} className="flex items-center gap-2">
+                          <input
+                            type="radio"
+                            name="typeIncident_infrastructure"
+                            value={lvl}
+                            checked={incidentFormData.typeIncident_infrastructure === lvl}
+                            onChange={handleIncidentChange}
+                            className="w-4 h-4"
+                          />
+                          <span className="text-gray-700">{lvl}</span>
+                        </label>
+                      ))}
+                    </div>
                   </div>
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">
-                      Localité <span className="text-red-500">*</span>
+
+                  {/* Type d'incident par abonné */}
+                  <div className="space-y-2">
+                    <label className="block text-sm font-semibold text-gray-700">
+                      Type incident — Abonné <span className="text-red-500">*</span>
                     </label>
-                    <input
-                      type="text"
-                      name="localite"
-                      value={editFormData.localite}
-                      onChange={handleEditChange}
-                      className={getInputClass(editFormData.localite)}
-                      required
-                    />
+
+                    <div className="flex items-center gap-4">
+                      {["P1", "P2", "P3"].map((lvl) => (
+                        <label key={lvl} className="flex items-center gap-2">
+                          <input
+                            type="radio"
+                            name="typeIncident_abonne"
+                            value={lvl}
+                            checked={incidentFormData.typeIncident_abonne === lvl}
+                            onChange={handleIncidentChange}
+                            className="w-4 h-4"
+                          />
+                          <span className="text-gray-700">{lvl}</span>
+                        </label>
+                      ))}
+                    </div>
                   </div>
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">
-                      Communes <span className="text-red-500">*</span>
+
+                  {/* Type d'incident par zone */}
+                  <div className="space-y-2">
+                    <label className="block text-sm font-semibold text-gray-700">
+                      Type incident — Zone <span className="text-red-500">*</span>
                     </label>
-                    <input
-                      type="text"
-                      name="communes"
-                      value={editFormData.communes}
-                      onChange={handleEditChange}
-                      className={getInputClass(editFormData.communes)}
-                      required
-                    />
+
+                    <div className="flex items-center gap-4">
+                      {["Z1", "Z2", "Z3"].map((lvl) => (
+                        <label key={lvl} className="flex items-center gap-2">
+                          <input
+                            type="radio"
+                            name="typeIncident_zone"
+                            value={lvl}
+                            checked={incidentFormData.typeIncident_zone === lvl}
+                            onChange={handleIncidentChange}
+                            className="w-4 h-4"
+                          />
+                          <span className="text-gray-700">{lvl}</span>
+                        </label>
+                      ))}
+                    </div>
                   </div>
                 </div>
+              </div>
 
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Impacts <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  name="impacts"
+                  value={editFormData.impacts}
+                  onChange={handleEditChange}
+                  className={getInputClass(editFormData.impacts)}
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Actions de résolution <span className="text-red-500">*</span>
+                </label>
+                <textarea
+                  name="resolution"
+                  value={editFormData.resolution}
+                  onChange={handleEditChange}
+                  className={getInputClass(editFormData.resolution)}
+                  rows="2"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  État <span className="text-red-500">*</span>
+                </label>
+                <select
+                  name="etat"
+                  value={editFormData.etat}
+                  onChange={handleEditChange}
+                  className={getInputClass(editFormData.etat)}
+                  required
+                >
+                  <option value="">Sélectionner</option>
+                  <option value="Clos">Clos</option>
+                  <option value="Non clos">Non clos</option>
+                </select>
+              </div>
+
+              {editFormData.etat === "Clos" && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 mb-2">
-                      Abonnés impactés <span className="text-red-500">*</span>
+                      Date début <span className="text-red-500">*</span>
                     </label>
                     <input
-                      type="number"
-                      name="abonnesimpactes"
-                      value={editFormData.abonnesimpactes}
+                      type="datetime-local"
+                      name="dateDebut"
+                      value={editFormData.dateDebut}
                       onChange={handleEditChange}
-                      className={getInputClass(editFormData.abonnesimpactes)}
-                      min="0"
+                      className={getInputClass(editFormData.dateDebut)}
                       required
                     />
                   </div>
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 mb-2">
-                      Nœuds touchés <span className="text-red-500">*</span>
+                      Date fin <span className="text-red-500">*</span>
                     </label>
                     <input
-                      type="number"
-                      name="noeudsTouches"
-                      value={editFormData.noeudsTouches}
+                      type="datetime-local"
+                      name="dateFin"
+                      value={editFormData.dateFin}
                       onChange={handleEditChange}
-                      className={getInputClass(editFormData.noeudsTouches)}
-                      min="0"
+                      className={getInputClass(editFormData.dateFin)}
                       required
                     />
                   </div>
                 </div>
+              )}
 
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Type <span className="text-red-500">*</span>
-                  </label>
-                  <select
-                    name="typeIncident"
-                    value={editFormData.typeIncident}
-                    onChange={handleEditChange}
-                    className={getInputClass(editFormData.typeIncident)}
-                    required
-                  >
-                    <option value="">Sélectionner</option>
-                    <option value="CRITIQUE">CRITIQUE</option>
-                    <option value="MAJEUR">MAJEUR</option>
-                    <option value="MINEUR">MINEUR</option>
-                  </select>
-                </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Observation
+                </label>
+                <textarea
+                  name="observation"
+                  value={editFormData.observation}
+                  onChange={handleEditChange}
+                  className={getInputClass(editFormData.observation)}
+                  rows="2"
+                />
+              </div>
 
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Impacts <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    name="impacts"
-                    value={editFormData.impacts}
-                    onChange={handleEditChange}
-                    className={getInputClass(editFormData.impacts)}
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Actions de résolution <span className="text-red-500">*</span>
-                  </label>
-                  <textarea
-                    name="resolution"
-                    value={editFormData.resolution}
-                    onChange={handleEditChange}
-                    className={getInputClass(editFormData.resolution)}
-                    rows="2"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    État <span className="text-red-500">*</span>
-                  </label>
-                  <select
-                    name="etat"
-                    value={editFormData.etat}
-                    onChange={handleEditChange}
-                    className={getInputClass(editFormData.etat)}
-                    required
-                  >
-                    <option value="">Sélectionner</option>
-                    <option value="Clos">Clos</option>
-                    <option value="Non clos">Non clos</option>
-                  </select>
-                </div>
-
-                {editFormData.etat === "Clos" && (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-semibold text-gray-700 mb-2">
-                        Date début <span className="text-red-500">*</span>
-                      </label>
-                      <input
-                        type="datetime-local"
-                        name="dateDebut"
-                        value={editFormData.dateDebut}
-                        onChange={handleEditChange}
-                        className={getInputClass(editFormData.dateDebut)}
-                        required
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-semibold text-gray-700 mb-2">
-                        Date fin <span className="text-red-500">*</span>
-                      </label>
-                      <input
-                        type="datetime-local"
-                        name="dateFin"
-                        value={editFormData.dateFin}
-                        onChange={handleEditChange}
-                        className={getInputClass(editFormData.dateFin)}
-                        required
-                      />
-                    </div>
-                  </div>
-                )}
-
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Observation
-                  </label>
-                  <textarea
-                    name="observation"
-                    value={editFormData.observation}
-                    onChange={handleEditChange}
-                    className={getInputClass(editFormData.observation)}
-                    rows="2"
-                  />
-                </div>
-
-                <div className="flex gap-4 pt-4 sticky bottom-0 bg-white border-t-2 border-gray-200 -mx-6 px-6 -mb-6 pb-6">
-                  <button
-                    type="button"
-                    onClick={closeEditModal}
-                    className="flex-1 px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition font-semibold"
-                  >
-                    Annuler
-                  </button>
-                  <button
-                    type="submit"
-                    className="flex-1 px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg hover:shadow-xl transition font-semibold"
-                  >
-                    ✅ Enregistrer les modifications
-                  </button>
-                </div>
-              </form>
-            </div>
+              <div className="flex gap-4 pt-4 sticky bottom-0 bg-white border-t-2 border-gray-200 -mx-6 px-6 -mb-6 pb-6">
+                <button
+                  type="button"
+                  onClick={closeEditModal}
+                  className="flex-1 px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition font-semibold"
+                >
+                  Annuler
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg hover:shadow-xl transition font-semibold"
+                >
+                  ✅ Enregistrer les modifications
+                </button>
+              </div>
+            </form>
           </div>
-        )}
-      </div>
-      );
+        </div>
+      )}
+    </div>
+  );
 }

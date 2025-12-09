@@ -41,7 +41,7 @@ export default function Home() {
                     </h1>
 
                     <p className="mt-8 text-lg text-gray-300 sm:text-xl fade-up-delay">
-                        Signalez rapidement tout incident pour une intervention efficace et rapide.
+                        Signalez rapidement tout incident pour une Transparence complète.
                     </p>
 
 
@@ -56,7 +56,7 @@ export default function Home() {
                 </div>
 
                 {/* Footer placé juste sous l'image */}
-                <footer className="pb-6 text-orange-200 text-sm text-center relative z-10">
+                <footer className="pb-0 text-orange-200 text-sm text-center relative z-10">
                     © 2025 ARTCI - Tous droits réservés
                 </footer>
             </div>
