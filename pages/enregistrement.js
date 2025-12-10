@@ -551,11 +551,11 @@ const handleIncidentChange = (e) => {
             <p className="text-xl text-gray-500">Aucun incident trouvé</p>
           </div>
         ) : (
-          <div className="space-y-10">
+          <div className="space-y-10 mb-5" > 
             {filteredIncidents.map((incident) => (
-              <Link href={`/incidents/${incident.id_formulaire}`} key={incident.id_formulaire}>
+              <Link href={`/incidents/${incident.id_formulaire}`} key={incident.id_formulaire}  asChild>
                 <div
-                  className="bg-white rounded-2xl shadow-xl hover:shadow-2xl transition-all duration-300 overflow-hidden cursor-pointer"
+                  className="bg-white rounded-2xl shadow-xl hover:shadow-2xl transition-all duration-300 overflow-hidden cursor-pointer mb-5"
                 >
                   <div className="p-6">
                     {/* En-tête de la carte */}

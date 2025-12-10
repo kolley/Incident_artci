@@ -6,10 +6,21 @@ import { setCookie } from "cookies-next";
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {
-    return res.status(405).json({ message: "Méthode non autorisée" });
+    return res.status(405).json({ 
+      message: "Méthode non autorisée",
+      redirect: "/login_register"
+    });
   }
 
   const { email, password } = req.body;
+
+  // ✅ Validation des champs
+  if (!email || !password) {
+    return res.status(400).json({ 
+      message: "Email et mot de passe sont obligatoires",
+      redirect: "/login_register"
+    });
+  }
 
   try {
     // ✅ Récupérer l'utilisateur avec son profil
@@ -28,7 +39,10 @@ export default async function handler(req, res) {
 
     if (!user) {
       console.log("❌ Utilisateur non trouvé:", email);
-      return res.status(401).json({ message: "Utilisateur non trouvé" });
+      return res.status(401).json({ 
+        message: "Email ou mot de passe incorrect",
+        redirect: "/login_register"
+      });
     }
 
     console.log("🔍 Vérification du mot de passe pour:", email);
@@ -36,7 +50,10 @@ export default async function handler(req, res) {
     const isValid = await bcrypt.compare(password, user.password);
     if (!isValid) {
       console.log("❌ Mot de passe incorrect");
-      return res.status(401).json({ message: "Mot de passe incorrect" });
+      return res.status(401).json({ 
+        message: "Email ou mot de passe incorrect",
+        redirect: "/login_register"
+      });
     }
 
     console.log("✅ Authentification réussie pour:", email);
@@ -44,9 +61,9 @@ export default async function handler(req, res) {
     // 🔐 Création du token avec TOUS les champs nécessaires
     const token = jwt.sign(
       { 
-        id_user: user.id_user,        // ✅ IMPORTANT : id_user (pas "id")
+        id_user: user.id_user,
         email: user.email,
-        id_Profil: user.id_Profil,    // ✅ IMPORTANT : id_Profil
+        id_Profil: user.id_Profil,
         nom_user: user.nom_user
       },
       process.env.JWT_SECRET,
@@ -59,18 +76,20 @@ export default async function handler(req, res) {
     setCookie("token", token, {
       req,
       res,
-      httpOnly: true,                                    // ✅ Protection XSS
-      secure: process.env.NODE_ENV === "production",    // ✅ HTTPS en production
-      sameSite: "lax",                                   // ✅ CORRIGÉ : "lax" au lieu de "strict"
-      maxAge: 60 * 60 * 24,                             // 24 heures
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      maxAge: 60 * 60 * 24,
       path: "/"
     });
 
     console.log("🍪 Cookie créé avec succès");
 
-    // ✅ Retourner les informations utilisateur
+    // ✅ Retourner les informations utilisateur avec redirection vers le dashboard
     return res.status(200).json({
+      success: true,
       message: "Connexion réussie",
+      redirect: "/dashboard", // ✅ Redirection vers le dashboard après succès
       user: {
         id_user: user.id_user,
         nom_user: user.nom_user,
@@ -82,6 +101,9 @@ export default async function handler(req, res) {
 
   } catch (error) {
     console.error("❌ Erreur login:", error);
-    return res.status(500).json({ message: "Erreur interne du serveur" });
+    return res.status(500).json({ 
+      message: "Erreur interne du serveur",
+      redirect: "/login_register"
+    });
   }
 }

@@ -44,7 +44,7 @@ model User {
   nom_user        String
   id_operateur    Int?
   nom_operateur   Operateur?  @relation(fields: [id_operateur], references: [id_operateur])
-  id_Profil       String?
+  id_Profil       String
   nom_profil      Profil?     @relation(fields: [id_Profil], references: [id_Profil])
   formulaires     Formulaire[]
   notifications   Notification[]

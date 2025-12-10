@@ -4,14 +4,20 @@ import { verifyToken } from "../../service/middleware/auth";
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {
-    return res.status(405).json({ message: "Méthode non autorisée" });
+    return res.status(405).json({ 
+      message: "Méthode non autorisée",
+      redirect: "/error" // ou une autre page appropriée
+    });
   }
 
   // Vérifier l'authentification
   const auth = verifyToken(req);
   
   if (!auth.success) {
-    return res.status(401).json({ message: "Vous devez être connecté pour créer un utilisateur" });
+    return res.status(401).json({ 
+      message: "Vous devez être connecté pour créer un utilisateur",
+      redirect: "/login" // Rediriger vers la page de connexion
+    });
   }
 
   const { id_Profil: userProfil } = auth.user;
@@ -20,7 +26,8 @@ export default async function handler(req, res) {
   // Seuls SUP_AD0 et SUPER_1 peuvent créer des utilisateurs
   if (!["SUP_AD0", "SUPER_1"].includes(userProfil)) {
     return res.status(403).json({
-      message: "Vous n'avez pas la permission de créer des utilisateurs"
+      message: "Vous n'avez pas la permission de créer des utilisateurs",
+      redirect: "/dashboard" // Rediriger vers le tableau de bord
     });
   }
 
@@ -28,16 +35,22 @@ export default async function handler(req, res) {
   // Convertir id_operateur en entier
   const idOperateurInt = parseInt(id_operateur, 10);
 
-  // 🔥 Ajout du champ operateur dans les champs obligatoires
+  // Validation des champs obligatoires
   if (!email || !password || !nom_user || !id_Profil || !id_operateur) {
-    return res.status(400).json({ message: "Tous les champs sont obligatoires" });
+    return res.status(400).json({ 
+      message: "Tous les champs sont obligatoires",
+      redirect: "/dashboard/create" // Rester sur le formulaire de création
+    });
   }
 
   try {
     // Vérifier si l'utilisateur existe déjà
     const existingUser = await prisma.user.findUnique({ where: { email } });
     if (existingUser) {
-      return res.status(409).json({ message: "Cet email est déjà utilisé" });
+      return res.status(409).json({ 
+        message: "Cet email est déjà utilisé",
+        redirect: "/dashboard" // Rester sur le formulaire
+      });
     }
 
     // Hasher le mot de passe
@@ -50,23 +63,28 @@ export default async function handler(req, res) {
         password: hashedPassword,
         nom_user,
         id_Profil,
-        id_operateur: idOperateurInt,   // ✅ AJOUT ICI
+        id_operateur: idOperateurInt,
       },
     });
 
     return res.status(201).json({
+      success: true,
       message: "Utilisateur créé avec succès",
+      redirect: "/dashboard", // Rediriger vers la liste des utilisateurs
       user: {
         id: newUser.id_user,
         email: newUser.email,
         nom_user: newUser.nom_user,
         profil: newUser.id_Profil,
-        id_operateur: newUser.operateur   // ✅ AJOUT DANS LE RETOUR
+        id_operateur: newUser.id_operateur
       }
     });
 
   } catch (error) {
     console.error("Erreur:", error);
-    return res.status(500).json({ message: "Erreur interne du serveur" });
+    return res.status(500).json({ 
+      message: "Erreur interne du serveur",
+      redirect: "/dashboard" // Rester sur le formulaire ou rediriger vers une page d'erreur
+    });
   }
 }

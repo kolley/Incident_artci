@@ -24,7 +24,6 @@ export default function Dashboard() {
     const [activeTab, setActiveTab] = useState("stats");
     const [sidebarOpen, setSidebarOpen] = useState(true);
 
-    // ✅ Nouveau state pour gérer l'affichage des formulaires
     const [showIncidentForm, setShowIncidentForm] = useState(false);
     const [showUserForm, setShowUserForm] = useState(false);
     const [userOperateur, setUserOperateur] = useState(null);
@@ -36,11 +35,9 @@ export default function Dashboard() {
         mesIncidents: 0
     });
 
-    // État du formulaire d'incident
-    // ✅ Modifier le state initial pour inclure l'opérateur
     const [incidentFormData, setIncidentFormData] = useState({
-        id_operateur: null,        // ✅ NOUVEAU
-        nom_operateur: "",         // ✅ NOUVEAU
+        id_operateur: null,
+        nom_operateur: "",
         typeIncident_infrastructure: "",
         typeIncident_zone: "",
         typeIncident_abonne: "",
@@ -68,20 +65,15 @@ export default function Dashboard() {
         }));
     };
 
-
-    // État du formulaire utilisateur
     const [userFormData, setUserFormData] = useState({
         nom_user: "",
         email: "",
         password: "",
         id_Profil: "",
-        id_operateur: ""   // ✅ AJOUT
+        id_operateur: ""
     });
     const [operateurs, setOperateurs] = useState([]);
 
-
-
-    // ⬇️ Ajouter la fonction ici
     const fetchStats = async () => {
         try {
             const res = await fetch("/api/dashboard/stats");
@@ -119,10 +111,7 @@ export default function Dashboard() {
                 setUserName(data.nom);
                 setUserOperateur(data.operateur);
 
-                // 🔹 Charger les stats
                 await fetchStats();
-
-                // 🔹 Charger les profils pour le formulaire inscription user
 
                 const fetchProfils = async () => {
                     try {
@@ -135,7 +124,6 @@ export default function Dashboard() {
                 };
                 fetchProfils();
 
-                // 🔹 Charger les opérateurs
                 const opRes = await fetch("/api/user/operateur");
                 if (opRes.ok) {
                     const opData = await opRes.json();
@@ -150,28 +138,6 @@ export default function Dashboard() {
 
         verifyUser();
     }, [router]);
-
-    /*
-        const fetchStats = async () => {
-            try {
-                const res = await fetch("/api/dashboard/stats", {
-                    method: "GET",
-                    credentials: "include"
-                });
-    
-                if (!res.ok) {
-                    console.error("❌ Erreur stats:", await res.text());
-                    return;
-                }
-    
-                const data = await res.json();
-                console.log("📊 Stats récupérées:", data);
-                setStats(data);
-    
-            } catch (error) {
-                console.error("❌ Erreur fetchStats:", error);
-            }
-        };*/
 
     const handleLogout = async () => {
         try {
@@ -192,12 +158,10 @@ export default function Dashboard() {
         }
     };
 
-    // ✅ Gestion du formulaire d'incident (VERSION NETTOYÉE)
     const handleIncidentSubmit = async (e) => {
         e.preventDefault();
 
         try {
-            // S'assurer que l'opérateur est présent dans le payload
             const payload = {
                 ...incidentFormData,
                 id_operateur: incidentFormData.id_operateur ?? userOperateur?.id_operateur ?? null,
@@ -213,31 +177,32 @@ export default function Dashboard() {
 
             const data = await response.json();
 
-            // ❌ Gestion des erreurs
             if (!response.ok) {
                 alert("❌ " + (data.error || "Erreur lors de la déclaration"));
 
-                // ✅ Scroll vers le champ en erreur
                 if (data.field) {
                     const element = document.querySelector(`[name="${data.field}"]`);
                     if (element) {
                         element.scrollIntoView({ behavior: "smooth", block: "center" });
                         element.focus();
-
-                        // (Optionnel) Ajouter une bordure rouge temporaire
                         element.classList.add("border-red-500");
                         setTimeout(() => {
                             element.classList.remove("border-red-500");
                         }, 2000);
                     }
                 }
-                return; // ⚠️ IMPORTANT : Arrêter ici si erreur
+
+                // ✅ Gestion de la redirection après erreur
+                if (data.redirect) {
+                    setTimeout(() => {
+                        router.push(data.redirect);
+                    }, 2000);
+                }
+                return;
             }
 
-            // ✅ Succès : afficher le message
             alert("✅ Incident déclaré avec succès !");
 
-            // ✅ Réinitialiser le formulaire en conservant l'opérateur
             setIncidentFormData({
                 id_operateur: userOperateur?.id_operateur ?? null,
                 nom_operateur: userOperateur?.nom_operateur ?? "",
@@ -260,16 +225,28 @@ export default function Dashboard() {
                 etat: "",
             });
 
-            // ✅ Fermer le formulaire et rafraîchir
             setShowIncidentForm(false);
             await fetchStats();
+
+            // ✅ Redirection après succès (si fournie)
+            if (data.redirect) {
+                setTimeout(() => {
+                    router.push(data.redirect);
+                }, 1500);
+            }
 
         } catch (err) {
             console.error("❌ Erreur handleIncidentSubmit:", err);
             alert("❌ Erreur: " + (err.message || err));
+            
+            // ✅ Redirection vers une page d'erreur en cas d'exception
+            setTimeout(() => {
+                router.push("/error");
+            }, 2000);
         }
     };
-    // ✅ Gestion du formulaire utilisateur
+
+    // ✅ CORRECTION PRINCIPALE : Gestion du formulaire utilisateur avec redirections
     const handleUserChange = (e) => {
         setUserFormData({
             ...userFormData,
@@ -279,6 +256,7 @@ export default function Dashboard() {
 
     const handleUserSubmit = async (e) => {
         e.preventDefault();
+        
         try {
             const response = await fetch("/api/register", {
                 method: "POST",
@@ -289,14 +267,25 @@ export default function Dashboard() {
                 body: JSON.stringify(userFormData),
             });
 
+            const data = await response.json();
+
+            // ❌ Gestion des erreurs avec redirection
             if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.message || "Erreur lors de la création");
+                alert("❌ " + (data.message || "Erreur lors de la création"));
+
+                // ✅ Redirection après affichage de l'erreur
+                if (data.redirect) {
+                    setTimeout(() => {
+                        router.push(data.redirect);
+                    }, 2000); // 2 secondes pour lire le message
+                }
+                return; // Important: arrêter l'exécution ici
             }
 
-            alert("✅ Utilisateur créé avec succès !");
+            // ✅ Succès
+            alert("✅ " + (data.message || "Utilisateur créé avec succès !"));
 
-            // Réinitialiser et fermer
+            // Réinitialiser le formulaire
             setUserFormData({
                 nom_user: "",
                 email: "",
@@ -304,11 +293,24 @@ export default function Dashboard() {
                 id_Profil: "",
                 id_operateur: ""
             });
+            
             setShowUserForm(false);
 
+            // ✅ Redirection après succès
+            if (data.redirect) {
+                setTimeout(() => {
+                    router.push(data.redirect);
+                }, 1500); // Délai plus court pour le succès
+            }
+
         } catch (err) {
-            console.error("❌ Erreur:", err);
-            alert(`Erreur: ${err.message}`);
+            console.error("❌ Erreur handleUserSubmit:", err);
+            alert(`❌ Erreur: ${err.message || "Une erreur est survenue"}`);
+            
+            // ✅ Redirection en cas d'exception
+            setTimeout(() => {
+                router.push("/error");
+            }, 2000);
         }
     };
 
@@ -338,14 +340,19 @@ export default function Dashboard() {
         if (!operateur) return "";
 
         // Si c'est un objet : { id_operateur: 1, nom_operateur: "ORANGE CI" }
-        if (typeof operateur === "object") {
-            return operateur.nom_operateur || "";
+        if (typeof operateur === "object" && operateur.nom_operateur) {
+            return operateur.nom_operateur;
         }
 
-        // Si c'est un id : 1, 2, 3...
-        const op = operateurs.find(o => o.id_operateur === Number(operateur));
-        return op ? op.nom_operateur : "";
+        // Si c'est un id numérique
+        if (typeof operateur === "number" || !isNaN(operateur)) {
+            const op = operateurs.find(o => o.id_operateur === Number(operateur));
+            return op ? op.nom_operateur : "";
+        }
+
+        return "";
     };
+
     const getInputClass = (value) => {
         const baseClass = "w-full border-2 p-3 rounded-lg transition-all duration-300 focus:outline-none focus:ring-2";
         if (value) {
@@ -365,7 +372,7 @@ export default function Dashboard() {
             name: "Déclarer un incident",
             icon: FaFileAlt,
             path: "/formulaire",
-            roles: ["SUP_AD0", "USER_3",]
+            roles: ["SUP_AD0", "USER_3"]
         },
         {
             name: "Voir les incidents",
@@ -493,7 +500,7 @@ export default function Dashboard() {
                                 {activeTab === "settings" && "Paramètres"}
                             </h1>
                             <p className="text-gray-600 mt-1">
-                                Bienvenue, {getProfilLabel(userProfil)}  {getOperateurLabel(userOperateur)}
+                                Bienvenue, {getProfilLabel(userProfil)} {userOperateur && ` - ${getOperateurLabel(userOperateur)}`}
                             </p>
                         </div>
                         <div className="flex items-center gap-4">
