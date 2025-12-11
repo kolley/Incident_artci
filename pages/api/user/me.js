@@ -35,7 +35,7 @@ export default async function handler(req, res) {
             return res.status(401).json({ error: "Token invalide - ID manquant" });
         }
 
-        // ✅ Récupérer l'utilisateur avec son profil complet
+        // ✅ Récupérer l&apos;utilisateur avec son profil complet
         const user = await prisma.user.findUnique({
     where: { id_user },
     select: {

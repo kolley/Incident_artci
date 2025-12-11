@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { useRouter } from "next/router";
-import { FaUser, FaEye, FaEyeSlash } from "react-icons/fa";
+import { FaUser, FaLock, FaEye, FaEyeSlash } from "react-icons/fa";
 import Link from "next/link";
+import Image from "next/image";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -24,55 +25,42 @@ export default function LoginPage() {
         headers: {
           "Content-Type": "application/json",
         },
-        credentials: "include", // Important pour les cookies
+        credentials: "include",
         body: JSON.stringify({ email, password }),
       });
 
       const data = await response.json();
 
-      // ❌ Gestion des erreurs
       if (!response.ok) {
         console.error("❌ Erreur de connexion:", data);
-
-        // ✅ Afficher le message d'erreur
         alert("❌ " + (data.message || "Échec de la connexion"));
 
-        // ✅ Redirection après l'erreur (avec délai pour lire le message)
         if (data.redirect) {
           setTimeout(() => {
             router.push(data.redirect);
           }, 2000);
         } else {
-          // Redirection par défaut vers la même page pour réessayer
           setTimeout(() => {
             router.push("/login_register");
           }, 2000);
         }
-        return; // Important: arrêter ici
+        return;
       }
 
-      // ✅ Connexion réussie
       console.log("✅ Connexion réussie - Données:", data);
-
-      // ✅ Afficher le message de succès
       alert("✅ " + (data.message || "Connexion réussie !"));
 
-      // ✅ Redirection vers le dashboard
+      // ✅ Redirection immédiate vers le dashboard
       if (data.redirect) {
-        setTimeout(() => {
-          router.push(data.redirect);
-        }, 1000);
+        router.push(data.redirect);
       } else {
         router.push("/dashboard");
       }
 
     } catch (error) {
       console.error("❌ Exception lors de la connexion:", error);
-
-      // ✅ Afficher le message d'erreur
       alert("❌ Erreur: " + (error.message || "Une erreur est survenue"));
 
-      // ✅ Redirection vers une page d'erreur en cas d'exception
       setTimeout(() => {
         router.push("/error");
       }, 2000);
@@ -83,69 +71,72 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-orange-500/80 relative">
-      {/* Images de fond */}
-      <img
-        src="/images/image-fond.jpg"
-        alt="Image de fond ARTCI"
-        className="absolute inset-0 w-full h-screen object-cover opacity-10 mix-blend-multiply z-0"
-      />
-      <img
-        src="/images/17930.jpg"
-        alt="Image de fond 2 ARTCI"
-        className="absolute inset-0 w-full h-screen object-cover opacity-50 mix-blend-multiply z-0"
-      />
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-orange-400 via-orange-500 to-orange-600 relative overflow-hidden">
+      {/* Motif de fond */}
+      <div className="absolute inset-0 w-full h-full">
+        <Image
+          src="/images/image-fond.jpg"
+          alt="Image de fond réseau"
+          fill
+          className="object-cover opacity-20"
+          priority
+        />
+      </div>
 
       {/* Formulaire de connexion */}
-      <div className="bg-white shadow-lg rounded-2xl p-8 w-full max-w-md relative z-10">
-        <div className="text-center mb-6">
-          <span className="text-4xl">🔒</span>
-          <h2 className="text-2xl font-bold mt-2">Connexion</h2>
+      <div className="bg-gray-50 shadow-2xl rounded-3xl p-10 w-full max-w-md relative z-10">
+        <div className="text-center mb-8">
+          <div className="flex justify-center mb-4">
+            <div className="w-16 h-16 bg-gray-400 rounded-full flex items-center justify-center">
+              <FaLock className="text-white text-2xl" />
+            </div>
+          </div>
+          <h2 className="text-3xl font-bold text-gray-800 mb-2">Connexion</h2>
           <p className="text-gray-600 text-sm">
-            Accédez au système de déclaration d'incident
+            Accédez au système de déclaration d&apos;incident
           </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        <form onSubmit={handleSubmit} className="flex flex-col gap-5">
           {/* Champ Email */}
           <div className="relative">
+            <div className="absolute top-1/2 -translate-y-1/2 left-4">
+              <FaUser className="text-gray-400 text-lg" />
+            </div>
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="Entrez votre email"
+              placeholder="votre-email@exemple.com"
               required
               disabled={loading}
-              className={`w-full border rounded-lg p-3 pl-10 focus:outline-none focus:ring-2 focus:ring-orange-500 transition ${
-                loading ? "bg-gray-100 cursor-not-allowed" : ""
-              }`}
+              className={`w-full bg-white border-2 border-gray-300 rounded-xl p-4 pl-12 pr-4 text-gray-700 focus:outline-none focus:border-orange-500 transition ${loading ? "bg-gray-100 cursor-not-allowed" : ""
+                }`}
             />
-            <FaUser className="absolute top-3.5 left-3 text-gray-400" />
           </div>
 
           {/* Champ Mot de passe */}
           <div className="relative">
+            <div className="absolute top-1/2 -translate-y-1/2 left-4">
+              <FaLock className="text-gray-400 text-lg" />
+            </div>
             <input
               type={showPassword ? "text" : "password"}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="Entrez votre mot de passe"
+              placeholder="••••••••••"
               required
               disabled={loading}
-              className={`w-full border rounded-lg p-3 pl-10 pr-10 focus:outline-none focus:ring-2 focus:ring-orange-500 transition ${
-                loading ? "bg-gray-100 cursor-not-allowed" : ""
-              }`}
+              className={`w-full bg-white border-2 border-gray-300 rounded-xl p-4 pl-12 pr-12 text-gray-700 focus:outline-none focus:border-orange-500 transition ${loading ? "bg-gray-100 cursor-not-allowed" : ""
+                }`}
             />
-            <FaEye className="absolute top-3.5 left-3 text-gray-400" />
-            
-            {/* Bouton pour afficher/masquer le mot de passe */}
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
               disabled={loading}
-              className="absolute top-3.5 right-3 text-gray-400 hover:text-gray-600 transition"
+              className="absolute top-1/2 -translate-y-1/2 right-4 text-gray-400 hover:text-gray-600 transition"
             >
-              {showPassword ? <FaEyeSlash /> : <FaEye />}
+              {showPassword ? <FaEyeSlash className="text-lg" /> : <FaEye className="text-lg" />}
             </button>
           </div>
 
@@ -153,11 +144,10 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className={`font-semibold rounded-full shadow-md py-3 transition-all ${
-              loading
+            className={`font-bold text-lg rounded-xl shadow-md py-4 mt-2 transition-all ${loading
                 ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-                : "bg-white text-orange-600 hover:bg-orange-600 hover:text-white"
-            }`}
+                : "bg-white text-orange-600 hover:bg-orange-600 hover:text-white border-2 border-transparent hover:border-orange-600"
+              }`}
           >
             {loading ? (
               <span className="flex items-center justify-center gap-2">
@@ -190,14 +180,13 @@ export default function LoginPage() {
         </form>
 
         {/* Lien de retour */}
-        <p className="text-center mt-4 text-gray-600 text-sm">
-          <Link 
-            href="/" 
-            className={`text-orange-500 underline hover:text-orange-600 transition ${
-              loading ? "pointer-events-none opacity-50" : ""
-            }`}
+        <p className="text-center mt-6 text-gray-600 text-sm">
+          <Link
+            href="/"
+            className={`text-orange-600 underline hover:text-orange-700 transition font-medium ${loading ? "pointer-events-none opacity-50" : ""
+              }`}
           >
-            Retour à l'accueil
+            Retour à l&apos;accueil
           </Link>
         </p>
       </div>

@@ -7,7 +7,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ success: false, message: "Méthode non autorisée" });
   }
 
-  // ✅ Vérifier l'authentification
+  // ✅ Vérifier l&apos;authentification
   const auth = verifyToken(req);
   
   if (!auth.success) {

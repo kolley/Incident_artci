@@ -6,7 +6,7 @@ import { verifyToken } from "../../../service/middleware/auth";
 export default async function handler(req, res) {
     const { id } = req.query;
 
-    // ✅ Vérifier l'authentification
+    // ✅ Vérifier l&apos;authentification
     const auth = verifyToken(req);
 
     if (!auth.success) {
@@ -24,7 +24,7 @@ export default async function handler(req, res) {
     // ✅ MÉTHODE GET : Récupérer un incident
     if (req.method === "GET") {
         try {
-            // 1. Récupérer l'incident avec les relations
+            // 1. Récupérer l&apos;incident avec les relations
             const incident = await prisma.formulaire.findUnique({
                 where: { id_formulaire: parseInt(id) },
                 include: {
@@ -56,13 +56,13 @@ export default async function handler(req, res) {
                 console.log("❌ [get-incident] Permission refusée");
                 return res.status(403).json({
                     success: false,
-                    message: "Vous n'avez pas la permission de voir cet incident"
+                    message: "Vous n&apos;avez pas la permission de voir cet incident"
                 });
             }
 
             console.log("✅ [get-incident] Incident récupéré:", id);
 
-            // 3. Retourner l'incident
+            // 3. Retourner l&apos;incident
             return res.status(200).json({
                 success: true,
                 incident: incident
@@ -81,7 +81,7 @@ export default async function handler(req, res) {
     // ✅ MÉTHODE PUT/PATCH : Mise à jour
     else if (req.method === "PUT" || req.method === "PATCH") {
         try {
-            // 1. Vérifier que l'incident existe
+            // 1. Vérifier que l&apos;incident existe
             const existingIncident = await prisma.formulaire.findUnique({
                 where: { id_formulaire: parseInt(id) }
             });
@@ -101,7 +101,7 @@ export default async function handler(req, res) {
                 console.log("❌ [update-incident] Permission refusée");
                 return res.status(403).json({
                     success: false,
-                    message: "Vous n'avez pas la permission de modifier cet incident"
+                    message: "Vous n&apos;avez pas la permission de modifier cet incident"
                 });
             }
 
@@ -125,7 +125,7 @@ export default async function handler(req, res) {
                 etat,
             } = req.body;
 
-            // 4. Mettre à jour l'incident
+            // 4. Mettre à jour l&apos;incident
             const updatedIncident = await prisma.formulaire.update({
                 where: { id_formulaire: parseInt(id) },
                 data: {
@@ -169,7 +169,7 @@ export default async function handler(req, res) {
     // ✅ MÉTHODE DELETE : Suppression
     else if (req.method === "DELETE") {
         try {
-            // 1. Vérifier que l'incident existe
+            // 1. Vérifier que l&apos;incident existe
             const existingIncident = await prisma.formulaire.findUnique({
                 where: { id_formulaire: parseInt(id) }
             });
@@ -192,7 +192,7 @@ export default async function handler(req, res) {
                 });
             }
 
-            // 3. Supprimer l'incident
+            // 3. Supprimer l&apos;incident
             await prisma.formulaire.delete({
                 where: { id_formulaire: parseInt(id) }
             });

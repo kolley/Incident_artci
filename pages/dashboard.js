@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import Link from "next/link";
+import Image from "next/image";
 import {
     FaFileAlt,
     FaListAlt,
@@ -371,7 +372,7 @@ export default function Dashboard() {
         {
             name: "Déclarer un incident",
             icon: FaFileAlt,
-            path: "/formulaire",
+            path: "",
             roles: ["SUP_AD0", "USER_3"]
         },
         {
@@ -424,7 +425,13 @@ export default function Dashboard() {
                 <div className="p-4 flex items-center justify-between border-b border-orange-500">
                     {sidebarOpen && (
                         <div className="flex items-center gap-3">
-                            <img src="/images/logo-white.png" alt="Logo" className="h-10 w-auto" />
+                            <Image
+                                src="/images/logo-white.png"
+                                alt="Logo"
+                                width={70}     // largeur réelle (modifiable)
+                                height={70}    // hauteur réelle (modifiable)
+                                className="h-10 w-auto"
+                            />
                         </div>
                     )}
                     <button
@@ -653,9 +660,10 @@ export default function Dashboard() {
 
                                         <div className="space-y-2">
                                             <label className="block text-sm font-semibold text-gray-700">
-                                                Intitulé de l'incident <span className="text-red-500">*</span>
+                                                Intitulé de l&apos;incident <span className="text-red-500">*</span>
                                             </label>
                                             <input
+                                        
                                                 type="text"
                                                 name="intitule"
                                                 value={incidentFormData.intitule}
@@ -729,7 +737,7 @@ export default function Dashboard() {
 
                                         <div className="space-y-2">
                                             <label className="block text-sm font-semibold text-gray-700">
-                                                Nombre d'abonnés impactés <span className="text-red-500">*</span>
+                                                Nombre d&apos;abonnés impactés <span className="text-red-500">*</span>
                                             </label>
                                             <input
                                                 type="number"
@@ -744,12 +752,12 @@ export default function Dashboard() {
                                         </div>
 
                                         <div className="border-t-2 border-orange-200 pt-4 mt-6">
-                                            <h2 className="text-xl font-bold text-orange-600 mb-4">Détails de l'incident</h2>
+                                            <h2 className="text-xl font-bold text-orange-600 mb-4">Détails de l&apos;incident</h2>
                                         </div>
 
                                         <div className="space-y-2">
                                             <label className="block text-sm font-semibold text-gray-700">
-                                                Type de l'incident <span className="text-red-500">*</span>
+                                                Type de l&apos;incident <span className="text-red-500">*</span>
                                             </label>
 
                                             <div className="space-y-4">
@@ -872,7 +880,7 @@ export default function Dashboard() {
 
                                         <div className="space-y-2">
                                             <label className="block text-sm font-semibold text-gray-700">
-                                                État de l'incident <span className="text-red-500">*</span>
+                                                État de l&apos;incident <span className="text-red-500">*</span>
                                             </label>
                                             <select
                                                 name="etat"
@@ -881,7 +889,7 @@ export default function Dashboard() {
                                                 className={getInputClass(incidentFormData.etat)}
                                                 required
                                             >
-                                                <option value="">Sélectionner l'état</option>
+                                                <option value="">Sélectionner l&apos;état</option>
                                                 <option value="Clos">Clos</option>
                                                 <option value="Non clos">Non clos</option>
                                             </select>
@@ -970,7 +978,7 @@ export default function Dashboard() {
                                                 type="submit"
                                                 className="px-8 py-3 rounded-lg font-semibold bg-gradient-to-r from-orange-500 to-orange-600 text-white hover:from-orange-600 hover:to-orange-700 transition-all duration-300 hover:shadow-xl transform hover:scale-105"
                                             >
-                                                ✅ Soumettre l'incident
+                                                ✅ Soumettre l&apos;incident
                                             </button>
                                         </div>
                                     </form>
@@ -1100,7 +1108,7 @@ export default function Dashboard() {
                                                 type="submit"
                                                 className="flex-1 px-6 py-3 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg hover:shadow-xl transition font-semibold"
                                             >
-                                                ✅ Créer l'utilisateur
+                                                ✅ Créer l&apos;utilisateur
                                             </button>
                                         </div>
                                     </form>

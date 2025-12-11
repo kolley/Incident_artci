@@ -1,7 +1,8 @@
 // pages/incidents/[id].js
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/router";
 import Link from "next/link";
+import Image from "next/image";
 
 export default function IncidentDetailsPage() {
     const router = useRouter();
@@ -14,18 +15,60 @@ export default function IncidentDetailsPage() {
     const [emailStatus, setEmailStatus] = useState(null);
     const [userProfil, setUserProfil] = useState(null);
 
-    useEffect(() => {
-        if (id) {
-            fetchUserProfileAndIncident();
-        }
-    }, [id]);
+    /**
+     * ------------------------------
+     *   Fonction d’envoi d’accusé
+     * ------------------------------
+     */
+    const sendAccuseReception = useCallback(async (incidentId) => {
+        try {
+            setEmailSending(true);
 
-    // ✅ Récupérer le profil ET l'incident, puis décider d'envoyer l'email
-    const fetchUserProfileAndIncident = async () => {
+            const response = await fetch("/api/accuser-reception/send", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                credentials: "include",
+                body: JSON.stringify({ id_formulaire: incidentId })
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                if (data.alreadySent) {
+                    setEmailStatus({ type: "already", message: "Accusé de réception déjà envoyé" });
+                } else {
+                    setEmailStatus({ type: "success", message: "Accusé envoyé !" });
+
+                    // 🔁 Recharge l’incident
+                    const refresh = await fetch(`/api/incidents/${incidentId}`, {
+                        method: "GET",
+                        credentials: "include",
+                    });
+                    const refreshed = await refresh.json();
+                    if (refreshed.success) setIncident(refreshed.incident);
+                }
+            } else {
+                setEmailStatus({ type: "error", message: data.message || "Erreur lors de l'envoi" });
+            }
+
+        } catch (err) {
+            setEmailStatus({ type: "error", message: "Erreur lors de l'envoi de l'accusé" });
+        } finally {
+            setEmailSending(false);
+        }
+    }, []);
+
+
+    /**
+     * ------------------------------
+     *   Charge profil + incident
+     * ------------------------------
+     */
+    const fetchUserProfileAndIncident = useCallback(async () => {
         try {
             setLoading(true);
 
-            // 1️⃣ Récupérer le profil utilisateur
+            // 1. Récupère le profil utilisateur
             const userResponse = await fetch("/api/user/me", {
                 method: "GET",
                 credentials: "include",
@@ -38,7 +81,7 @@ export default function IncidentDetailsPage() {
                 setUserProfil(profil);
             }
 
-            // 2️⃣ Récupérer l'incident
+            // 2. Récupère l’incident
             const incidentResponse = await fetch(`/api/incidents/${id}`, {
                 method: "GET",
                 credentials: "include",
@@ -52,16 +95,13 @@ export default function IncidentDetailsPage() {
 
             setIncident(incidentData.incident);
 
-            // 3️⃣ Si admin/superviseur ET accusé pas encore envoyé → envoyer automatiquement
-            const isAdminOrSupervisor = ["SUP_AD0", "SUPER_1", "SUPER_2"].includes(profil);
+            // 3. Envoi automatique si admin ou superviseur
+            const isAdmin = ["SUP_AD0", "SUPER_1", "SUPER_2"].includes(profil);
 
-            if (isAdminOrSupervisor && !incidentData.incident.accuseEnvoye) {
-                console.log("✅ Admin/Superviseur détecté → Envoi automatique de l'accusé");
+            if (isAdmin && !incidentData.incident.accuseEnvoye) {
                 await sendAccuseReception(id);
             } else if (incidentData.incident.accuseEnvoye) {
                 setEmailStatus({ type: "already", message: "Accusé de réception déjà envoyé" });
-            } else {
-                console.log("ℹ️ Utilisateur standard → Pas d'envoi automatique");
             }
 
         } catch (err) {
@@ -70,77 +110,46 @@ export default function IncidentDetailsPage() {
         } finally {
             setLoading(false);
         }
-    };
+    }, [id, sendAccuseReception]);
 
-    const sendAccuseReception = async (incidentId) => {
-        try {
-            setEmailSending(true);
+    /**
+     * ------------------------------
+     *     useEffect propre
+     * ------------------------------
+     */
+    useEffect(() => {
+        if (id) fetchUserProfileAndIncident();
+    }, [id, fetchUserProfileAndIncident]);
 
-            const response = await fetch("/api/accuser-reception/send", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                credentials: "include",
-                body: JSON.stringify({ id_formulaire: incidentId })
-            });
 
-            const data = await response.json();
-
-            if (data.success) {
-                if (data.alreadySent) {
-                    setEmailStatus({ type: "already", message: "Accusé de réception déjà envoyé" });
-                } else {
-                    setEmailStatus({ type: "success", message: "✅ Accusé de réception envoyé avec succès !" });
-                    // Recharger l'incident pour mettre à jour le badge
-                    const incidentResponse = await fetch(`/api/incidents/${incidentId}`, {
-                        method: "GET",
-                        credentials: "include",
-                    });
-                    const incidentData = await incidentResponse.json();
-                    if (incidentData.success) {
-                        setIncident(incidentData.incident);
-                    }
-                }
-            } else {
-                setEmailStatus({ type: "error", message: data.message || "⚠️ Erreur lors de l'envoi" });
-            }
-
-        } catch (err) {
-            console.error("❌ Erreur envoi email:", err);
-            setEmailStatus({ type: "error", message: "⚠️ Erreur lors de l'envoi de l'accusé" });
-        } finally {
-            setEmailSending(false);
-        }
-    };
-
+    /**
+     * ------------------------------
+     *   Utilitaires
+     * ------------------------------
+     */
     const formatDate = (dateString) => {
-        if (!dateString) return '-';
+        if (!dateString) return "-";
         const date = new Date(dateString);
-        return date.toLocaleString('fr-FR', {
-            day: '2-digit',
-            month: '2-digit',
-            year: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
+        return date.toLocaleString("fr-FR", {
+            day: "2-digit",
+            month: "2-digit",
+            year: "numeric",
+            hour: "2-digit",
+            minute: "2-digit",
         });
     };
 
-    const getEtatBadge = (etat) => {
-        if (etat === 'Clos') {
-            return 'bg-green-100 text-green-800 border-green-300';
-        }
-        return 'bg-red-100 text-red-800 border-red-300';
-    };
+    const getEtatBadge = (etat) =>
+        etat === "Clos"
+            ? "bg-green-100 text-green-800 border-green-300"
+            : "bg-red-100 text-red-800 border-red-300";
 
-    const getTypeBadge = (type) => {
-        const badges = {
-            'CRITIQUE': 'bg-red-100 text-red-800',
-            'MAJEUR': 'bg-yellow-100 text-yellow-800',
-            'MINEUR': 'bg-blue-100 text-blue-800'
-        };
-        return badges[type] || 'bg-gray-100 text-gray-800';
-    };
+    const getTypeBadge = (type) =>
+    ({
+        CRITIQUE: "bg-red-100 text-red-800",
+        MAJEUR: "bg-yellow-100 text-yellow-800",
+        MINEUR: "bg-blue-100 text-blue-800",
+    }[type] || "bg-gray-100 text-gray-800");
 
     if (loading) {
         return (
@@ -185,9 +194,14 @@ export default function IncidentDetailsPage() {
             {/* Header */}
             <header className="bg-white shadow-md sticky top-0 z-50">
                 <nav className="container mx-auto px-6 py-4 flex items-center justify-between">
-                    <Link href="/" className="flex items-center">
-                        <img src="/images/ARTCI-2_img.png" alt="Logo ARTCI" className="h-16 w-auto object-contain" />
-                    </Link>
+                    <Image
+                        src="/images/ARTCI-2_img.png"
+                        alt="Logo"
+                        width={70}     // largeur réelle (modifiable)
+                        height={70}    // hauteur réelle (modifiable)
+                        className="h-10 w-auto"
+                    />
+
                     <div className="flex gap-6 items-center">
                         <Link href="/enregistrement" className="text-gray-700 hover:text-orange-600 font-semibold transition">
                             ← Retour à la liste
@@ -202,14 +216,14 @@ export default function IncidentDetailsPage() {
                 {emailSending && (
                     <div className="bg-blue-100 border-2 border-blue-400 text-blue-800 px-6 py-4 rounded-lg mb-6 flex items-center gap-3">
                         <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-800"></div>
-                        <span>Envoi de l'accusé de réception en cours...</span>
+                        <span>Envoi de l&apos;accusé de réception en cours...</span>
                     </div>
                 )}
 
                 {emailStatus && (
                     <div className={`border-2 px-6 py-4 rounded-lg mb-6 ${emailStatus.type === "success" ? "bg-green-100 border-green-400 text-green-800" :
-                            emailStatus.type === "already" ? "bg-blue-100 border-blue-400 text-blue-800" :
-                                "bg-red-100 border-red-400 text-red-800"
+                        emailStatus.type === "already" ? "bg-blue-100 border-blue-400 text-blue-800" :
+                            "bg-red-100 border-red-400 text-red-800"
                         }`}>
                         {emailStatus.message}
                     </div>

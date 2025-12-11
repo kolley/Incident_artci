@@ -23,7 +23,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    // ✅ Récupérer l'utilisateur avec son profil
+    // ✅ Récupérer l&apos;utilisateur avec son profil
     const user = await prisma.user.findUnique({ 
       where: { email },
       include: {

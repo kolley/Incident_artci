@@ -22,12 +22,12 @@ export default async function handler(req, res) {
   if (!allowedProfils.includes(id_Profil)) {
     console.log("❌ [formulaire] Profil non autorisé:", id_Profil);
     return res.status(403).json({ 
-      error: "Vous n'avez pas la permission de créer des incidents" 
+      error: "Vous n&apos;avez pas la permission de créer des incidents" 
     });
   }
 
   try {
-    // ✅ Récupérer l'opérateur de l'utilisateur depuis la BDD
+    // ✅ Récupérer l&apos;opérateur de l&apos;utilisateur depuis la BDD
     const user = await prisma.user.findUnique({
       where: { id_user },
       select: { id_operateur: true }
@@ -35,7 +35,7 @@ export default async function handler(req, res) {
 
     if (!user || !user.id_operateur) {
       return res.status(400).json({ 
-        error: "Votre compte n'est pas associé à un opérateur. Contactez l'administrateur." 
+        error: "Votre compte n&apos;est pas associé à un opérateur. Contactez l&apos;administrateur." 
       });
     }
 
@@ -70,21 +70,21 @@ export default async function handler(req, res) {
 
     if (!typeIncident_infrastructure) {
       return res.status(400).json({
-        error: "Veuillez sélectionner le type d'incident infrastructure.",
+        error: "Veuillez sélectionner le type d&apos;incident infrastructure.",
         field: "typeIncident_infrastructure"
       });
     }
 
     if (!typeIncident_zone) {
       return res.status(400).json({
-        error: "Veuillez sélectionner le type d'incident zone.",
+        error: "Veuillez sélectionner le type d&apos;incident zone.",
         field: "typeIncident_zone"
       });
     }
 
     if (!typeIncident_abonne) {
       return res.status(400).json({
-        error: "Veuillez sélectionner le type d'incident abonné.",
+        error: "Veuillez sélectionner le type d&apos;incident abonné.",
         field: "typeIncident_abonne"
       });
     }
@@ -126,7 +126,7 @@ export default async function handler(req, res) {
 
     if (!abonnesimpactes) {
       return res.status(400).json({
-        error: "Le nombre d'abonnés impactés est obligatoire.",
+        error: "Le nombre d&apos;abonnés impactés est obligatoire.",
         field: "abonnesimpactes"
       });
     }
@@ -154,7 +154,7 @@ export default async function handler(req, res) {
 
     if (!etat) {
       return res.status(400).json({
-        error: "Veuillez choisir un état pour l'incident.",
+        error: "Veuillez choisir un état pour l&apos;incident.",
         field: "etat"
       });
     }
@@ -167,7 +167,7 @@ export default async function handler(req, res) {
       });
     }
 
-    // ✅ Création de l'incident avec l'opérateur de l'utilisateur
+    // ✅ Création de l&apos;incident avec l&apos;opérateur de l&apos;utilisateur
     const incident = await prisma.formulaire.create({
       data: {
         id_user,
@@ -201,9 +201,9 @@ export default async function handler(req, res) {
     });
 
   } catch (error) {
-    console.error("❌ [formulaire] Erreur lors de l'enregistrement:", error);
+    console.error("❌ [formulaire] Erreur lors de l&apos;enregistrement:", error);
     
-    // ✅ GESTION DE L'ERREUR DE RÉFÉRENCE DUPLIQUÉE
+    // ✅ GESTION DE L&apos;ERREUR DE RÉFÉRENCE DUPLIQUÉE
     if (error.code === "P2002" && error.meta?.target?.includes("reference")) {
       return res.status(400).json({ 
         error: "Cette référence existe déjà. Veuillez en choisir une autre.",

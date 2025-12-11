@@ -1,9 +1,10 @@
 // pages/enregistrement.js
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/router";
 import Link from "next/link";
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
+import Image from "next/image";
 
 export default function IncidentsPage() {
   const router = useRouter();
@@ -12,18 +13,17 @@ export default function IncidentsPage() {
   const [error, setError] = useState(null);
   const [userProfil, setUserProfil] = useState(null);
   const [userId, setUserId] = useState(null);
-  const [userName, setUserName] = useState(""); // ← AJOUTE CETTE LIGNE
+  const [userName, setUserName] = useState("");
   const [incidentFormData, setIncidentFormData] = useState({
-  typeIncident_infrastructure: "",
-  typeIncident_abonne: "",
-  typeIncident_zone: "",
-});
+    typeIncident_infrastructure: "",
+    typeIncident_abonne: "",
+    typeIncident_zone: "",
+  });
 
-const handleIncidentChange = (e) => {
-  const { name, value } = e.target;
-  setIncidentFormData((prev) => ({ ...prev, [name]: value }));
-};
-
+  const handleIncidentChange = (e) => {
+    const { name, value } = e.target;
+    setIncidentFormData((prev) => ({ ...prev, [name]: value }));
+  };
 
   // ✅ État pour le modal d'édition
   const [editingIncident, setEditingIncident] = useState(null);
@@ -37,12 +37,9 @@ const handleIncidentChange = (e) => {
     dateDebut: "",
     dateFin: ""
   });
-  
-  useEffect(() => {
-    fetchIncidents();
-  }, []);
 
-  const fetchIncidents = async () => {
+  // ✅ CORRECTION : Utiliser useCallback pour fetchIncidents
+  const fetchIncidents = useCallback(async () => {
     try {
       setLoading(true);
 
@@ -88,7 +85,13 @@ const handleIncidentChange = (e) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [router]);
+
+  // ✅ CORRECTION : Ajouter fetchIncidents dans les dépendances
+  useEffect(() => {
+    fetchIncidents();
+  }, [fetchIncidents]);
+
   // ✅ Récupération du nom de l'utilisateur connecté
   useEffect(() => {
     const fetchUserInfo = async () => {
@@ -343,7 +346,6 @@ const handleIncidentChange = (e) => {
       }
     }
 
-
     return matchOperateur && matchType && matchEtat && matchSearch && matchDate;
   });
 
@@ -364,9 +366,15 @@ const handleIncidentChange = (e) => {
       <header className="bg-white shadow-md sticky top-0 z-50">
         <nav className="container mx-auto px-6 py-4 flex items-center justify-between">
 
-          <Link href="/" className="flex items-center">
-            <img src="/images/ARTCI-2_img.png" alt="Logo ARTCI" className="h-16 w-auto object-contain" />
-          </Link>
+          <div className="flex items-center gap-3">
+            <Image
+              src="/images/ARTCI-2_img.png"
+              alt="Logo"
+              width={70}     // largeur réelle (modifiable)
+              height={70}    // hauteur réelle (modifiable)
+              className="h-10 w-auto"
+            />
+          </div>
 
           <div className="flex gap-6 items-center">
 
@@ -694,7 +702,7 @@ const handleIncidentChange = (e) => {
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
             <div className="sticky top-0 bg-white border-b-2 border-orange-500 p-6 flex justify-between items-center">
-              <h2 className="text-2xl font-bold text-orange-600">✏️ Modifier l'incident</h2>
+              <h2 className="text-2xl font-bold text-orange-600">✏️ Modifier l&apos;incident</h2>
               <button
                 onClick={closeEditModal}
                 className="p-2 hover:bg-gray-100 rounded-full transition"
@@ -844,12 +852,12 @@ const handleIncidentChange = (e) => {
               </div>
 
               <div className="border-t-2 border-orange-200 pt-4 mt-6">
-                <h2 className="text-xl font-bold text-orange-600 mb-4">Détails de l'incident</h2>
+                <h2 className="text-xl font-bold text-orange-600 mb-4">Détails de l&apos;incident</h2>
               </div>
 
               <div className="space-y-2">
                 <label className="block text-sm font-semibold text-gray-700">
-                  Type de l'incident <span className="text-red-500">*</span>
+                  Type de l&apos;incident <span className="text-red-500">*</span>
                 </label>
 
                 <div className="space-y-4">
